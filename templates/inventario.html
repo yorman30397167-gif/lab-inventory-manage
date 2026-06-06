@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventario de Equipos</title>
+    <style>
+        /* Animación del fondo tecnológico esmeralda */
+        @keyframes inventarioBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            display: flex; 
+            /* Paleta Ciber-Esmeralda / Hardware */
+            background: linear-gradient(-45deg, #0f172a, #062f22, #111827, #0f172a);
+            background-size: 400% 400%;
+            animation: inventarioBg 15s ease infinite;
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        
+        /* Barra Lateral */
+        .sidebar { width: 260px; background-color: #1e293b; color: white; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; border-right: 1px solid rgba(255, 255, 255, 0.05); }
+        .sidebar h2 { font-size: 20px; text-align: center; margin-bottom: 30px; color: #38bdf8; font-weight: bold; }
+        .menu-item { padding: 12px 15px; color: #cbd5e1; text-decoration: none; display: block; border-radius: 6px; margin-bottom: 8px; transition: 0.3s; }
+        .menu-item:hover, .menu-item.active { background-color: #334155; color: white; font-weight: bold; }
+        
+        /* Contenedor central fijo a la pantalla */
+        .main-content { flex: 1; padding: 30px; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Encabezado fijo superior */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; flex-shrink: 0; }
+        .header h1 { font-size: 26px; color: #f8fafc; }
+        .btn-add { background-color: #10b981; color: white; padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-add:hover { background-color: #059669; transform: translateY(-1px); }
+        
+        /* CONTENEDOR CON SCROLL INDEPENDIENTE (Solo bajan las tarjetas) */
+        .scroll-container-equipos { flex: 1; overflow-y: auto; padding-right: 10px; }
+        
+        /* Malla de las tarjetas con efecto de cristal translúcido */
+        .grid-equipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding-bottom: 20px; }
+        .equipo-card { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(8px);
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            min-height: 160px; 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: transform 0.3s ease;
+        }
+        .equipo-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        /* Diseño estético para la barra de scroll */
+        .scroll-container-equipos::-webkit-scrollbar { width: 8px; }
+        .scroll-container-equipos::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+        .scroll-container-equipos::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        .scroll-container-equipos::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div>
+            <h2>Lab-Inventory</h2>
+            <a href="{{ url_for('home') }}" class="menu-item">📊 Panel Principal</a>
+            <a href="{{ url_for('inventario') }}" class="menu-item active">🖥️ Equipos e Inventario</a>
+            <a href="{{ url_for('mantenimiento') }}" class="menu-item">🔧 Mantenimiento Preventivo</a>
+            
+            {% if usuario_actual == 'admin' %}
+            <a href="{{ url_for('acceso') }}" class="menu-item">🔑 Control de Acceso</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="main-content">
+        
+        <div class="header">
+            <h1>🖥️ Control de Inventario</h1>
+            <a href="{{ url_for('registrar_equipo') }}" style="text-decoration: none;">
+                <button class="btn-add">+ Registrar Nuevo Equipo</button>
+            </a>
+        </div>
+        
+        <div class="scroll-container-equipos">
+            <div class="grid-equipos">
+                {% for equipo in equipos %}
+                <div class="equipo-card">
+                    <div>
+                        <h3 style="color: #0f172a; font-size: 18px; margin-bottom: 6px; font-weight: 700;">{{ equipo.nombre }}</h3>
+                        <p style="color: #334155; font-size: 14px; margin: 4px 0;"><strong>Sede:</strong> {{ equipo.laboratorio }}</p>
+                        <p style="color: #475569; font-size: 14px; margin: 8px 0; line-height: 1.4;">{{ equipo.componentes }}</p>
+                    </div>
+                    
+                    <div style="margin-top: 10px;">
+                        {% if equipo.estado == "Disponible" %}
+                            <span style="background: #d1fae5; color: #065f46; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block;">🟢 Disponible</span>
+                        {% elif equipo.estado == "En Mantenimiento" %}
+                            <span style="background: #fef3c7; color: #92400e; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block;">🟡 En Mantenimiento</span>
+                        {% elif equipo.estado == "No Disponible" %}
+                            <span style="background: #fee2e2; color: #991b1b; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block;">🔴 No Disponible</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <p style="color: #cbd5e1; grid-column: 1/-1; text-align: center; margin-top: 40px; font-size: 15px; font-weight: 500;">No hay equipos registrados en el inventario todavía. ¡Registra el primero!</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

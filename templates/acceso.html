@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab-Inventory Manager - Control de Acceso</title>
+    <style>
+        /* Animación del fondo tecnológico de seguridad (Ámbar y Carbón) */
+        @keyframes seguridadBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            display: flex; 
+            /* Paleta Seguridad / Administración */
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #451a03, #0f172a);
+            background-size: 400% 400%;
+            animation: seguridadBg 14s ease infinite;
+            color: #333; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        
+        /* Barra Lateral */
+        .sidebar { width: 260px; background-color: #1e293b; color: white; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; border-right: 1px solid rgba(255, 255, 255, 0.05); }
+        .sidebar h2 { font-size: 20px; text-align: center; margin-bottom: 30px; color: #38bdf8; font-weight: bold; }
+        .menu-item { padding: 12px 15px; color: #cbd5e1; text-decoration: none; display: block; border-radius: 6px; margin-bottom: 8px; transition: 0.3s; }
+        .menu-item:hover, .menu-item.active { background-color: #334155; color: white; font-weight: bold; }
+
+        /* Contenedor Principal */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; }
+        .header h1 { font-size: 26px; color: #f8fafc; }
+
+        /* Tabla de Usuarios con Efecto Cristal */
+        .table-container { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(8px);
+            border-radius: 10px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); 
+            padding: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .table-container h2 { font-size: 18px; margin-bottom: 15px; color: #0f172a; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background-color: rgba(241, 245, 249, 0.8); padding: 12px; color: #475569; font-size: 14px; border-bottom: 2px solid #cbd5e1; font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1e293b; }
+        tr:hover { background-color: rgba(241, 245, 249, 0.5); }
+
+        /* Botones de Acción de Permisos */
+        .btn-toggle { border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
+        .btn-toggle.deactivate { background-color: #fee2e2; color: #991b1b; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-toggle.deactivate:hover { background-color: #fca5a5; transform: translateY(-1px); }
+        .btn-toggle.activate { background-color: #d1fae5; color: #065f46; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .btn-toggle.activate:hover { background-color: #a7f3d0; transform: translateY(-1px); }
+        
+        /* Alertas Estilizadas */
+        .alert-flash { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            font-size: 14px; 
+            font-weight: 500; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .alert-flash.success { background-color: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .alert-flash.error { background-color: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .alert-flash.info { background-color: #e0f2fe; color: #0369a1; border-left: 4px solid #0ea5e9; }
+        
+        .close-alert { background: none; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: inherit; opacity: 0.6; transition: 0.2s; }
+        .close-alert:hover { opacity: 1; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div>
+            <h2>Lab-Inventory</h2>
+            <a href="{{ url_for('home') }}" class="menu-item">📊 Panel Principal</a>
+            <a href="{{ url_for('inventario') }}" class="menu-item">🖥️ Equipos e Inventario</a>
+            <a href="{{ url_for('mantenimiento') }}" class="menu-item">🔧 Mantenimiento Preventivo</a>
+            <a href="{{ url_for('acceso') }}" class="menu-item active">🔑 Control de Acceso</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        
+        <div class="header">
+            <h1>Gestión de Usuarios y Control de Acceso</h1>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert-flash {{ category }}">
+                  <span>📢 {{ message }}</span>
+                  <button class="close-alert" onclick="this.parentElement.style.display='none';">&times;</button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="profile-card" style="background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px); padding: 20px; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255, 255, 255, 0.5);">
+            <div style="display: flex; gap: 25px; align-items: center;">
+                <div style="background: #ffedd5; padding: 12px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; width: 55px; height: 55px;">👑</div>
+                <div>
+                    <h2 style="margin: 0; font-size: 19px; color: #0f172a; font-weight: 700;">
+                        {{ admin.nombre }} {{ admin.apellido }} 
+                        <span style="font-size: 13px; color: #475569; font-weight: normal; margin-left: 5px;">(@{{ admin.username }})</span>
+                    </h2>
+                    <div style="display: flex; gap: 20px; margin-top: 6px; font-size: 13px; color: #334155;">
+                        <p><strong>C.I:</strong> {{ admin.cedula }}</p>
+                        <p><strong>Código Asignado:</strong> <span style="font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #0f172a;">{{ admin.codigo_asignado }}</span></p>
+                        <p><strong>Estatus:</strong> <span style="color: #16a34a; font-weight: bold;">🟢 Activo</span></p>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <a href="{{ url_for('logout') }}" style="background-color: #ef4444; color: white; text-align: center; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: 0.3s;">
+                    ❌ Cerrar Sesión
+                </a>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h2>Personal Registrado en el Sistema</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre Completo</th>
+                        <th>Cédula</th>
+                        <th>Código Personal</th>
+                        <th>Nombre de Usuario</th>
+                        <th>Estado Actual</th>
+                        <th>Acción de Permiso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></td>
+                        <td>{{ usuario.cedula }}</td>
+                        <td><span style="font-family: monospace; background: rgba(241, 245, 249, 0.9); padding: 4px 8px; border-radius: 4px; color: #0f172a; font-weight: 500;">{{ usuario.codigo_asignado }}</span></td>
+                        <td>@{{ usuario.username }}</td>
+                        <td>
+                            {% if usuario.estado == "Activo" %}
+                                <span style="color: #16a34a; font-weight: bold;">🟢 Activo</span>
+                            {% else %}
+                                <span style="color: #dc2626; font-weight: bold;">🔴 Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form action="{{ url_for('cambiar_estado_usuario', usuario_id=usuario.id) }}" method="POST" style="margin:0;">
+                                {% if usuario.estado == "Activo" %}
+                                    <button type="submit" class="btn-toggle deactivate">🔒 Desactivar</button>
+                                智 {% else %}
+                                    <button type="submit" class="btn-toggle activate">🔓 Activar</button>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Nuevo Equipo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { display: flex; background-color: #f4f6f9; height: 100vh; }
+        .sidebar { width: 260px; background-color: #1e293b; color: white; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        .sidebar h2 { font-size: 20px; text-align: center; margin-bottom: 30px; color: #38bdf8; }
+        .menu-item { padding: 12px 15px; color: #cbd5e1; text-decoration: none; display: block; border-radius: 6px; margin-bottom: 8px; }
+        .menu-item:hover, .menu-item.active { background-color: #334155; color: white; }
+        .main-content { flex: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; }
+        .form-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); width: 100%; max-width: 500px; margin-top: 20px; }
+        h1 { font-size: 24px; color: #1e293b; margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #475569; font-size: 14px; }
+        input, select, textarea { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        textarea { resize: vertical; height: 80px; }
+        .btn-group { display: flex; gap: 10px; }
+        .btn-save { background-color: #10b981; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; flex: 1; font-size: 14px; }
+        .btn-save:hover { background-color: #059669; }
+        .btn-cancel { background-color: #94a3b8; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-decoration: none; text-align: center; flex: 1; font-size: 14px; }
+        .btn-cancel:hover { background-color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div>
+            <h2>Lab-Inventory</h2>
+            <a href="{{ url_for('home') }}" class="menu-item">📊 Panel Principal</a>
+            <a href="{{ url_for('inventario') }}" class="menu-item active">🖥️ Equipos e Inventario</a>
+            <a href="{{ url_for('mantenimiento') }}" class="menu-item">🔧 Mantenimiento Preventivo</a>
+            {% if usuario_actual == 'admin' %}
+            <a href="{{ url_for('acceso') }}" class="menu-item">🔑 Control de Acceso</a>
+            {% endif %}
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout-btn" style="background-color: #ef4444; color: white; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; display: block;">❌ Cerrar Sesión</a>
+    </div>
+
+    <div class="main-content">
+        <div class="form-container">
+            <h1>🖥️ Registrar Nuevo Equipo</h1>
+            
+            <form action="{{ url_for('registrar_equipo') }}" method="POST">
+                <label for="nombre">Nombre / Modelo del Equipo</label>
+                <input type="text" id="nombre" name="nombre" placeholder="Ej. Dell OptiPlex 7090" required>
+
+                <label for="laboratorio">Laboratorio Asignado</label>
+                <select id="laboratorio" name="laboratorio" required>
+                    <option value="" disabled selected>Selecciona un laboratorio</option>
+                    <option value="Laboratorio 1 (Piso 2)">Laboratorio 1 (Piso 2)</option>
+                    <option value="Laboratorio 2 (Piso 3)">Laboratorio 2 (Piso 3)</option>
+                    <option value="Laboratorio Central">Laboratorio Central</option>
+                </select>
+
+                <label for="componentes">Componentes / Especificaciones</label>
+                <textarea id="componentes" name="componentes" placeholder="Ej. Intel i7, 16GB RAM, 512GB SSD" required></textarea>
+
+                <label for="estado">Estado Inicial del Equipo</label>
+<select id="estado" name="estado" required>
+    <option value="Disponible" selected>🟢 Disponible (Operativo)</option>
+    <option value="En Mantenimiento">🟡 En Mantenimiento</option>
+    <option value="No Disponible">🔴 No Disponible</option>
+</select>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn-save">💾 Guardar Equipo</button>
+                    <a href="{{ url_for('inventario') }}" class="btn-cancel">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

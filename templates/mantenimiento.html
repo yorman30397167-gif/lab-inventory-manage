@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab-Inventory Manager - Mantenimiento Preventivo</title>
+    <style>
+        /* Animación del fondo tecnológico de soporte */
+        @keyframes soporteBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            display: flex; 
+            /* Paleta Violeta y Azul Profundo / Enfoque Técnico */
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #2e1065, #0f172a);
+            background-size: 400% 400%;
+            animation: soporteBg 12s ease infinite;
+            color: #333; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        
+        /* Barra Lateral */
+        .sidebar { width: 260px; background-color: #1e293b; color: white; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; border-right: 1px solid rgba(255, 255, 255, 0.05); }
+        .sidebar h2 { font-size: 20px; text-align: center; margin-bottom: 30px; color: #38bdf8; font-weight: bold; }
+        .menu-item { padding: 12px 15px; color: #cbd5e1; text-decoration: none; display: block; border-radius: 6px; margin-bottom: 8px; transition: 0.3s; }
+        .menu-item:hover, .menu-item.active { background-color: #334155; color: white; font-weight: bold; }
+
+        /* Contenedor Principal */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; }
+        .header h1 { font-size: 26px; color: #f8fafc; }
+
+        /* Estilos del Formulario de Registro Translúcido */
+        .form-container { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(8px);
+            border-radius: 10px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); 
+            padding: 25px; 
+            margin-bottom: 30px; 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .form-container h2 { font-size: 18px; margin-bottom: 20px; color: #0f172a; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+        .form-group input, .form-group select { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; color: #0f172a; outline: none; background: white; transition: 0.2s; }
+        .form-group input:focus, .form-group select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .btn-submit { background-color: #10b981; color: white; border: none; padding: 11px 24px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; margin-top: 5px; }
+        .btn-submit:hover { background-color: #059669; transform: translateY(-1px); }
+
+        /* Estilos de la Tabla Translúcida */
+        .table-container { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(8px);
+            border-radius: 10px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); 
+            padding: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .table-container h2 { font-size: 18px; margin-bottom: 15px; color: #0f172a; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background-color: rgba(241, 245, 249, 0.8); padding: 12px; color: #475569; font-size: 14px; border-bottom: 2px solid #cbd5e1; font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1e293b; }
+        tr:hover { background-color: rgba(241, 245, 249, 0.5); }
+
+        /* Botones de Acción */
+        .btn-action { border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; background-color: #3b82f6; color: white; transition: 0.2s; }
+        .btn-action:hover { background-color: #2563eb; }
+
+        /* Badges de Semáforo Inteligente */
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; display: inline-block; }
+        .badge.verde { background-color: #d1fae5; color: #065f46; }
+        .badge.amarillo { background-color: #fef3c7; color: #92400e; }
+        .badge.rojo { background-color: #fee2e2; color: #991b1b; }
+
+        /* Alertas */
+        .alert-flash { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 500; background-color: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .close-alert { background: none; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: inherit; opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Lateral -->
+    <div class="sidebar">
+        <div>
+            <h2>Lab-Inventory</h2>
+            <a href="{{ url_for('home') }}" class="menu-item">📊 Panel Principal</a>
+            <a href="{{ url_for('inventario') }}" class="menu-item">🖥️ Equipos e Inventario</a>
+            <a href="{{ url_for('mantenimiento') }}" class="menu-item active">🔧 Mantenimiento Preventivo</a>
+            {% if usuario_actual == 'admin' %}
+            <a href="{{ url_for('acceso') }}" class="menu-item">🔑 Control de Acceso</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Contenedor Principal -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Cronograma de Mantenimiento Preventivo</h1>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert-flash">
+                  <span>📢 {{ message }}</span>
+                  <button class="close-alert" onclick="this.parentElement.style.display='none';">&times;</button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Tarjeta de Perfil Translúcida -->
+        <div class="profile-card" style="background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px); padding: 20px; border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255, 255, 255, 0.5);">
+            <div style="display: flex; gap: 25px; align-items: center;">
+                <div style="background: #e0f2fe; padding: 12px; border-radius: 50%; font-size: 24px; display: flex; align-items: center; justify-content: center; width: 55px; height: 55px;">👤</div>
+                <div>
+                    <h2 style="margin: 0; font-size: 19px; color: #0f172a; font-weight: 700;">
+                        {{ admin.nombre }} {{ admin.apellido }}
+                        <span style="font-size: 13px; color: #475569; font-weight: normal; margin-left: 5px;">(@{{ admin.username }})</span>
+                    </h2>
+                    <div style="display: flex; gap: 20px; margin-top: 6px; font-size: 13px; color: #334155;">
+                        <p><strong>C.I:</strong> {{ admin.cedula }}</p>
+                        <p><strong>Código Asignado:</strong> <span style="font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #0f172a;">{{ admin.codigo_asignado }}</span></p>
+                        <p><strong>Estatus:</strong> <span style="color: #16a34a; font-weight: bold;">🟢 Activo</span></p>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <a href="{{ url_for('logout') }}" style="background-color: #ef4444; color: white; text-align: center; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: 0.3s;">
+                    ❌ Cerrar Sesión
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulario de Registro -->
+        <div class="form-container">
+            <h2>➕ Programar Nueva Tarea de Mantenimiento</h2>
+            <form action="{{ url_for('crear_mantenimiento') }}" method="POST">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="laboratorio">Laboratorio / Ubicación</label>
+                        <input type="text" id="laboratorio" name="laboratorio" placeholder="Ej: Laboratorio 4" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tipo_tarea">Operación Técnica Requerida</label>
+                        <input type="text" id="tipo_tarea" name="tipo_tarea" placeholder="Ej: Cambio de Pasta Térmica" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="frecuencia">Frecuencia del Soporte</label>
+                        <select id="frecuencia" name="frecuencia" required>
+                            <option value="Mensual">Mensual (30 días)</option>
+                            <option value="Trimestral">Trimestral (90 días)</option>
+                            <option value="Semestral">Semestral (180 días)</option>
+                            <option value="Anual">Anual (365 días)</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Label actualizado a Ejecutar Tarea para mantener consistencia con los controles -->
+                <button type="submit" class="btn-submit">🚀 Ejecutar Tarea</button>
+            </form>
+        </div>
+
+        <!-- Tabla de Tareas -->
+        <div class="table-container">
+            <h2>Tareas de Soporte Programadas</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Laboratorio</th>
+                        <th>Operación Técnica Requerida</th>
+                        <th>Frecuencia</th>
+                        <th>Última Ejecución</th>
+                        <th>Próxima Fecha Límite</th>
+                        <th>Estado Crítico</th>
+                        <th>Acción Técnica</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarea in tareas %}
+                    <tr>
+                        <td><strong>{{ tarea.laboratorio }}</strong></td>
+                        <td>{{ tarea.tipo_tarea }}</td>
+                        <td><span style="background: rgba(241, 245, 249, 0.9); padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; color: #0f172a;">⏳ {{ tarea.frecuencia }}</span></td>
+                        <td>{{ tarea.ultima_fecha }}</td>
+                        <td>{{ tarea.proxima_fecha }}</td>
+                        <td>
+                            <span class="badge {{ tarea.color }}">
+                                {{ tarea.estatus }} 
+                                {% if tarea.color == 'rojo' %}(¡Hace {{ tarea.dias_restantes | abs }} días!){% elif tarea.color == 'amarillo' %}(Faltan {{ tarea.dias_restantes }}d){% else %}(Ok){% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('realizar_mantenimiento', tarea_id=tarea.id) }}" method="POST" style="margin:0;">
+                                <button type="submit" class="btn-action">🛠️ Marcar Realizado</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

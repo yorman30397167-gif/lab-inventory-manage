@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab-Inventory - Registro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .register-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 450px; }
+        h2 { text-align: center; color: #0f172a; margin-bottom: 20px; font-size: 24px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; }
+        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .btn-submit { width: 100%; background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-submit:hover { background: #2563eb; }
+        .footer-link { text-align: center; margin-top: 20px; font-size: 13px; color: #64748b; }
+        .footer-link a { color: #3b82f6; text-decoration: none; font-weight: bold; }
+        .footer-link a:hover { text-decoration: underline; }
+        .alert { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="register-container">
+    <h2>Crear Cuenta Nueva</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          {% if category == 'error' %}
+            <div class="alert">{{ message }}</div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('registro') }}" method="POST">
+        <div class="form-group row">
+            <div>
+                <label>Nombre</label>
+                <input type="text" name="nombre" placeholder="Ej. Yorman" required>
+            </div>
+            <div>
+                <label>Apellido</label>
+                <input type="text" name="apellido" placeholder="Ej. Blanco" required>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <div>
+                <label>Cédula de Identidad</label>
+                <input type="text" name="cedula" placeholder="Ej. 30397167" required>
+            </div>
+            <div>
+                <label>Código Personal</label>
+                <input type="text" name="codigo" placeholder="Ej. ADM-002" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Nombre de Usuario (Username)</label>
+            <input type="text" name="usuario" placeholder="Ej. yorman_911" required>
+        </div>
+
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" name="contrasena" placeholder="Crea una contraseña segura" required>
+        </div>
+
+        <button type="submit" class="btn-submit">💾 Registrarse e Ingresar</button>
+    </form>
+
+    <div class="footer-link">
+        ¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Inicia sesión aquí</a>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab-Inventory Manager - Iniciar Sesión</title>
+    <style>
+        /* Fondo con degradado tecnológico animado */
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            /* Colores oscuros estilo Dashboard Tech (Azul profundo, morado sutil y negro) */
+            background: linear-gradient(-45deg, #0f172a, #1e1b4b, #2e1065, #0f172a);
+            background-size: 400% 400%;
+            animation: gradientAnimation 12s ease infinite;
+            overflow: hidden; 
+        }
+
+        /* Contenedor del Login */
+        .login-container { 
+            background: rgba(255, 255, 255, 0.03); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px; 
+            border-radius: 16px; 
+            width: 100%; 
+            max-width: 420px; 
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .login-container h1 { 
+            color: #f8fafc; 
+            font-size: 28px; 
+            margin-bottom: 8px; 
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .login-container p {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* Grupos de Formulario */
+        .form-group { 
+            display: flex; 
+            flex-direction: column; 
+            text-align: left; 
+            margin-bottom: 20px; 
+        }
+
+        .form-group label { 
+            font-size: 12px; 
+            font-weight: 600; 
+            color: #38bdf8; /* Azul tecnológico */
+            margin-bottom: 8px; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input { 
+            padding: 12px 16px; 
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            border-radius: 8px; 
+            font-size: 15px; 
+            color: white; 
+            outline: none; 
+            transition: all 0.3s ease; 
+        }
+
+        /* Animación de enfoque: Brillo de neón al hacer clic */
+        .form-group input:focus { 
+            border-color: #38bdf8; 
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        /* Botón de Envío Eléctrico */
+        .btn-login { 
+            width: 100%; 
+            background: linear-gradient(135deg, #38bdf8, #2563eb); 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-login:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+            background: linear-gradient(135deg, #0ea5e9, #1d4ed8);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        /* Enlace de Registro */
+        .register-link { 
+            margin-top: 25px; 
+            font-size: 14px; 
+            color: #94a3b8; 
+        }
+
+        .register-link a { 
+            color: #38bdf8; 
+            text-decoration: none; 
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .register-link a:hover { 
+            text-decoration: underline;
+            color: #0ea5e9;
+        }
+
+        /* Alertas Flash de Flask (Estilo Flotante) */
+        .alert-container {
+            margin-bottom: 20px;
+        }
+        .alert-flash { 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            font-weight: 500; 
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .alert-flash.success {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .alert-flash.error {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .close-alert { background: none; border: none; color: inherit; font-size: 16px; cursor: pointer; font-weight: bold; opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h1>Lab-Inventory</h1>
+        <p>Sistema de Gestión y Mantenimiento Técnico</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="alert-container">
+                {% for category, message in messages %}
+                  <div class="alert-flash {% if category == 'success' %}success{% else %}error{% endif %}">
+                      <span>⚠️ {{ message }}</span>
+                      <button class="close-alert" onclick="this.parentElement.style.display='none';">&times;</button>
+                  </div>
+                {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="form-group">
+                <label for="usuario">Nombre de Usuario</label>
+                <input type="text" id="usuario" name="usuario" placeholder="Ingrese su usuario" required autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label for="contrasena">Contraseña del Sistema</label>
+                <input type="password" id="contrasena" name="contrasena" placeholder="••••••••" required>
+            </div>
+            
+            <button type="submit" class="btn-login">🔒 Ingresar al Panel</button>
+        </form>
+
+        <div class="register-link">
+            ¿No tienes una cuenta? <a href="{{ url_for('registro') }}">Regístrate aquí</a>
+        </div>
+    </div>
+
+</body>
+</html>
