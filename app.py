@@ -342,6 +342,221 @@ def completar_mantenimiento(equipo_id):
     flash(f"El equipo '{equipo.nombre}' ahora está Operativo.", "success")
     return redirect(url_for('home'))
 
+from flask import Response, make_response
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+
+# ==========================================
+# 1. RUTA PARA EXPORTAR A EXCEL (.XLSX)
+# ==========================================
+@app.route('/exportar/excel')
+def exportar_excel():
+    # 1. Crear el libro y la hoja activa
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Inventario de Laboratorio"
+    
+    # Asegurar que las líneas de cuadrícula sean visibles
+    ws.views.sheetView[0].showGridLines = True
+    
+    # 2. Definir estilos profesionales (Colores desaturados)
+    font_titulo = Font(name="Arial", size=16, bold=True, color="1F497D")
+    font_cabecera = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+    font_datos = Font(name="Arial", size=10)
+    
+    fill_cabecera = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
+    fill_cebra = PatternFill(start_color="F2F5F8", end_color="F2F5F8", fill_type="solid")
+    
+    align_centro = Alignment(horizontal="center", vertical="center")
+    align_izquierda = Alignment(horizontal="left", vertical="center")
+    
+    borde_delgado = Border(
+        left=Side(style='thin', color='D9D9D9'),
+        right=Side(style='thin', color='D9D9D9'),
+        top=Side(style='thin', color='D9D9D9'),
+        bottom=Side(style='thin', color='D9D9D9')
+    )
+    
+    # 3. Insertar Título del Reporte
+    ws['A1'] = "REPORTE GENERAL DE INVENTARIO - LAB-INVENTORY"
+    ws['A1'].font = font_titulo
+    ws.row_dimensions[1].height = 30
+    
+    # Space / Fila vacía
+    ws.append([])
+    
+    # 4. Cabeceras de la tabla
+    cabeceras = ["ID", "Nombre del Equipo", "Categoría", "Cantidad", "Estado", "Ubicación"]
+    ws.append(cabeceras)
+    
+    # Estilar la fila de cabecera (Fila 3)
+    ws.row_dimensions[3].height = 24
+    for col_num, cabecera in enumerate(cabeceras, 1):
+        cell = ws.cell(row=3, column=col_num)
+        cell.font = font_cabecera
+        cell.fill = fill_cabecera
+        cell.alignment = align_centro
+        cell.border = borde_delgado
+        
+    # 5. Obtener datos de la Base de Datos y rellenar la tabla
+    # NOTA: Reemplaza 'Equipo.query.all()' por tu consulta real de SQLAlchemy
+    equipos = Equipo.query.all() 
+    
+    fila_actual = 4
+    for idx, equipo in enumerate(equipos):
+        # Mapea los atributos según tu modelo real (id, nombre, categoria, cantidad, estado, ubicacion)
+        datos_fila = [equipo.id, equipo.nombre, equipo.categoria, equipo.cantidad, equipo.estado, equipo.ubicacion]
+        ws.append(datos_fila)
+        
+        ws.row_dimensions[fila_actual].height = 20
+        for col_num in range(1, len(datos_fila) + 1):
+            cell = ws.cell(row=fila_actual, column=col_num)
+            cell.font = font_datos
+            cell.border = borde_delgado
+            
+            # Alinear ID y Cantidad al centro, el resto a la izquierda
+            if col_num in [1, 4]:
+                cell.alignment = align_centro
+            else:
+                cell.alignment = align_izquierda
+                
+            # Aplicar filas alternas (zebra striping) para lectura cómoda
+            if idx % 2 != 0:
+                cell.fill = fill_cebra
+                
+        fila_actual += 1
+        
+    # 6. Auto-ajustar el ancho de las columnas dinámicamente según el contenido
+    for col in ws.columns:
+        max_len = 0
+        col_letter = col[0].column_letter
+        for cell in col:
+            if cell.row == 1: continue # Ignorar el largo del título principal
+            if cell.value:
+                max_len = max(max_len, len(str(cell.value)))
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+        
+    # 7. Configurar la respuesta de Flask para descarga directa del archivo binario
+    response = Response(
+        openpyxl.writer.excel.save_virtual_workbook(wb),
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response.headers["Content-Disposition"] = "attachment; filename=reporte_inventario.xlsx"
+    return response
+
+
+# ==========================================
+# 2. RUTA PARA EXPORTAR A PDF (REPORTLAB)
+# ==========================================
+@app.route('/exportar/pdf')
+def exportar_pdf():
+    # 1. Preparar la respuesta HTTP del navegador para un archivo PDF
+    response = make_response()
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=reporte_inventario.pdf'
+    
+    # 2. Crear el documento base con ReportLab usando tamaño A4 y márgenes consistentes
+    doc = SimpleDocTemplate(
+        response, 
+        pagesize=A4,
+        rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40
+    )
+    
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # 3. Definir estilos personalizados de tipografía
+    style_titulo = ParagraphStyle(
+        'TituloReporte',
+        parent=styles['Heading1'],
+        fontName='Helvetica-Bold',
+        fontSize=20,
+        textColor=colors.HexColor('#1F497D'),
+        spaceAfter=6
+    )
+    
+    style_subtitulo = ParagraphStyle(
+        'SubtituloReporte',
+        parent=styles['Normal'],
+        fontName='Helvetica-Oblique',
+        fontSize=10,
+        textColor=colors.HexColor('#555555'),
+        spaceAfter=20
+    )
+    
+    style_celda_cabecera = ParagraphStyle(
+        'CeldaCabecera',
+        fontName='Helvetica-Bold',
+        fontSize=10,
+        textColor=colors.white,
+        alignment=1 # Centrado
+    )
+    
+    style_celda_datos = ParagraphStyle(
+        'CeldaDatos',
+        fontName='Helvetica',
+        fontSize=9,
+        textColor=colors.HexColor('#333333')
+    )
+    
+    # 4. Añadir Títulos estructurales
+    story.append(Paragraph("LAB-INVENTORY MANAGER", style_titulo))
+    story.append(Paragraph("Reporte Oficial de Existencias e Insumos de Laboratorio", style_subtitulo))
+    story.append(Spacer(1, 10))
+    
+    # 5. Construir la estructura matricial de la tabla de datos
+    # Cabeceras
+    tabla_datos = [[
+        Paragraph("ID", style_celda_cabecera),
+        Paragraph("Nombre del Equipo", style_celda_cabecera),
+        Paragraph("Categoría", style_celda_cabecera),
+        Paragraph("Cant.", style_celda_cabecera),
+        Paragraph("Estado", style_celda_cabecera)
+    ]]
+    
+    # Datos de la BD envueltos en objetos Paragraph para evitar desbordamiento (Overflow prevention)
+    equipos = Equipo.query.all()
+    for equipo in equipos:
+        tabla_datos.append([
+            Paragraph(str(equipo.id), style_celda_datos),
+            Paragraph(equipo.nombre, style_celda_datos),
+            Paragraph(equipo.categoria, style_celda_datos),
+            Paragraph(str(equipo.cantidad), style_celda_datos),
+            Paragraph(equipo.estado, style_celda_datos)
+        ])
+        
+    # Ancho de las columnas proporcional al tamaño A4 disponible (~515 puntos utilizables)
+    anchos_columnas = [35, 180, 130, 50, 120]
+    
+    # 6. Aplicar diseño visual profesional mediante TableStyle
+    tabla_pdf = Table(tabla_datos, colWidths=anchos_columnas, repeatRows=1)
+    
+    estilo_tabla = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1F497D')), # Fondo cabecera azul
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D9D9D9')), # Bordes grises finos
+    ])
+    
+    # Añadir filas alternas con tono claro para romper monotonía visual
+    for i in range(1, len(tabla_datos)):
+        if i % 2 == 0:
+            estilo_tabla.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F2F5F8'))
+            
+    tabla_pdf.setStyle(estilo_tabla)
+    story.append(tabla_pdf)
+    
+    # 7. Compilar y retornar el PDF fluido
+    doc.build(story)
+    return response
 
 # ==========================================
 # BLOQUE DE ARRANQUE ÚNICO (AL FINAL)
