@@ -58,6 +58,30 @@ class Mantenimiento(db.Model):
     proxima_fecha = db.Column(db.Date, nullable=False)     
 
 # ==========================================
+# CREACIÓN AUTOMÁTICA DE TABLAS Y DATOS INICIALES (PARA LOCAL Y NUBE)
+# ==========================================
+with app.app_context():
+    db.create_all()  
+    
+    # Verificar y crear administrador por defecto si no existe
+    admin_existente = Usuario.query.filter_by(username="admin").first()
+    if not admin_existente:
+        admin_por_defecto = Usuario(
+            username="admin", password="admin", nombre="Yorman",
+            apellido="Blanco", cedula="V-30397167", codigo_assigned="ADM-911", estado="Activo"
+        )
+        db.session.add(admin_por_defecto)
+        db.session.commit()
+        
+    # Verificar y crear tareas de soporte iniciales si la tabla está vacía
+    if Mantenimiento.query.count() == 0:
+        t1 = Mantenimiento(laboratorio="Laboratorio 1", tipo_tarea="Soplado de Polvo y Pasta Térmica", frecuencia="Mensual", ultima_fecha=date.today()-timedelta(days=35), proxima_fecha=date.today()-timedelta(days=5)) 
+        t2 = Mantenimiento(laboratorio="Laboratorio 2", tipo_tarea="Actualización de Antivirus Nod32", frecuencia="Mensual", ultima_fecha=date.today()-timedelta(days=25), proxima_fecha=date.today()+timedelta(days=5))  
+        t3 = Mantenimiento(laboratorio="Laboratorio 3", tipo_tarea="Auditoría y Clonado de Sistemas Operativos", frecuencia="Trimestral", ultima_fecha=date.today(), proxima_fecha=date.today()+timedelta(days=90)) 
+        db.session.add_all([t1, t2, t3])
+        db.session.commit()
+
+# ==========================================
 # RUTAS DE LA APLICACIÓN
 # ==========================================
 
@@ -400,7 +424,7 @@ def exportar_excel():
         
     fila_actual = 4
     
-    # CONTROL DE BASE DE DATOS VACÍA
+    # CONTROL DE BASE DE DATOS VACÍA EN EXCEL
     if not todos_los_equipos:
         ws.append(["No hay equipos registrados en el sistema", "", "", ""])
         ws.merge_cells(start_row=fila_actual, start_column=1, end_row=fila_actual, end_column=4)
@@ -409,7 +433,6 @@ def exportar_excel():
         cell.alignment = align_centro
     else:
         for idx, equipo in enumerate(todos_los_equipos):
-            # Convertimos a string de manera segura previniendo valores None
             id_safe = f"#PC-0{equipo.id}" if equipo.id else "#PC-00"
             nombre_safe = str(equipo.nombre) if equipo.nombre else "S/N"
             lab_safe = str(equipo.laboratorio) if equipo.laboratorio else "Sin Asignar"
@@ -522,7 +545,6 @@ def exportar_pdf():
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D9D9D9')),
     ])
     
-    # Si está vacía, hacemos un span para que el texto ocupe toda la fila
     if not todos_los_equipos:
         estilo_tabla.add('SPAN', (0, 1), (-1, 1))
         estilo_tabla.add('ALIGN', (0, 1), (-1, 1), 'CENTER')
@@ -545,27 +567,8 @@ def exportar_pdf():
     )
 
 # ==========================================
-# BLOQUE DE ARRANQUE ÚNICO (AL FINAL)
+# BLOQUE DE ARRANQUE PARA EJECUCIÓN LOCAL
 # ==========================================
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  
-        
-        admin_existente = Usuario.query.filter_by(username="admin").first()
-        if not admin_existente:
-            admin_por_defecto = Usuario(
-                username="admin", password="admin", nombre="Yorman",
-                apellido="Blanco", cedula="V-30397167", codigo_assigned="ADM-911", estado="Activo"
-            )
-            db.session.add(admin_por_defecto)
-            db.session.commit()
-            
-        if Mantenimiento.query.count() == 0:
-            t1 = Mantenimiento(laboratorio="Laboratorio 1", tipo_tarea="Soplado de Polvo y Pasta Térmica", frecuencia="Mensual", ultima_fecha=date.today()-timedelta(days=35), proxima_fecha=date.today()-timedelta(days=5)) 
-            t2 = Mantenimiento(laboratorio="Laboratorio 2", tipo_tarea="Actualización de Antivirus Nod32", frecuencia="Mensual", ultima_fecha=date.today()-timedelta(days=25), proxima_fecha=date.today()+timedelta(days=5))  
-            t3 = Mantenimiento(laboratorio="Laboratorio 3", tipo_tarea="Auditoría y Clonado de Sistemas Operativos", frecuencia="Trimestral", ultima_fecha=date.today(), proxima_fecha=date.today()+timedelta(days=90)) 
-            db.session.add_all([t1, t2, t3])
-            db.session.commit()
-
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
