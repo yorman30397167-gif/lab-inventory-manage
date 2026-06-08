@@ -12,12 +12,13 @@ from reportlab.lib import colors
 
 app = Flask(__name__)
 
-# CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE (SQLITE LOCAL / POSTGRES EN PRODUCCIÓN)
+# CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE CON MOTOR PG8000
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
-    # Corrección para que SQLAlchemy acepte el formato moderno de Render
     if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+    elif DATABASE_URL.startswith("postgresql://"):
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project_data.db'
