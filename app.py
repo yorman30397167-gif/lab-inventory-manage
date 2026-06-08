@@ -12,7 +12,9 @@ from reportlab.lib import colors
 
 app = Flask(__name__)
 
-# CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE CON MOTOR PG8000
+# ==========================================
+# CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE
+# ==========================================
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     if DATABASE_URL.startswith("postgres://"):
@@ -22,14 +24,15 @@ if DATABASE_URL:
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project_data.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'una_clave_secreta_muy_segura_y_dificil_de_adivinar' 
 
-# INICIALIZACIÓN DE LA BASE DE DATOS
+# 1. INICIALIZAMOS LA BASE DE DATOS
 db = SQLAlchemy(app)
 
 # ==========================================
-# MODELOS DE LA BASE DE DATOS
+# 2. MODELOS DE LA BASE DE DATOS (Se definen ANTES del app_context)
 # ==========================================
 
 class Equipo(db.Model):
@@ -58,9 +61,10 @@ class Mantenimiento(db.Model):
     proxima_fecha = db.Column(db.Date, nullable=False)     
 
 # ==========================================
-# CREACIÓN AUTOMÁTICA DE TABLAS Y DATOS INICIALES (PARA LOCAL Y NUBE)
+# 3. CREACIÓN AUTOMÁTICA DE TABLAS Y DATOS INICIALES
 # ==========================================
 with app.app_context():
+    # Ahora que los modelos ya se cargaron en memoria, SQLAlchemy sí creará las tablas en Postgres
     db.create_all()  
     
     # Verificar y crear administrador por defecto si no existe
@@ -357,7 +361,7 @@ def cambiar_estado_usuario(usuario_id):
         usuario_a_cambiar.estado = "Activo"
         
     db.session.commit()
-    flash(f"Estado del usuario '{usuario_a_cambiar.username}' updated correctamente.", "success")
+    flash(f"Estado del usuario '{usuario_a_cambiar.username}' actualizado correctamente.", "success")
     return redirect(url_for('acceso'))
 
 @app.route('/logout')
@@ -424,7 +428,6 @@ def exportar_excel():
         
     fila_actual = 4
     
-    # CONTROL DE BASE DE DATOS VACÍA EN EXCEL
     if not todos_los_equipos:
         ws.append(["No hay equipos registrados en el sistema", "", "", ""])
         ws.merge_cells(start_row=fila_actual, start_column=1, end_row=fila_actual, end_column=4)
@@ -511,7 +514,6 @@ def exportar_pdf():
         Paragraph("Estado", style_celda_cabecera)
     ]]
     
-    # CONTROL DE BASE DE DATOS VACÍA EN PDF
     if not todos_los_equipos:
         tabla_datos.append([
             Paragraph("No hay equipos registrados en el sistema actualmente.", style_celda_datos),
