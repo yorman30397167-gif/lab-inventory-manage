@@ -1,11 +1,27 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
+import os
+import io
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 
 app = Flask(__name__)
 
-# CONFIGURACIONES DE LA APLICACIÓN
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project_data.db'
+# CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE (SQLITE LOCAL / POSTGRES EN PRODUCCIÓN)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    # Corrección para que SQLAlchemy acepte el formato moderno de Render
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project_data.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'una_clave_secreta_muy_segura_y_dificil_de_adivinar' 
 
 # INICIALIZACIÓN DE LA BASE DE DATOS
@@ -29,16 +45,16 @@ class Usuario(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     apellido = db.Column(db.String(100), nullable=False)
     cedula = db.Column(db.String(20), unique=True, nullable=False)
-    codigo_asignado = db.Column(db.String(20), unique=True, nullable=False)
+    codigo_assigned = db.Column(db.String(20), unique=True, nullable=False)
     estado = db.Column(db.String(20), default="Activo")   
 
 class Mantenimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     laboratorio = db.Column(db.String(100), nullable=False)
-    tipo_tarea = db.Column(db.String(150), nullable=False) # Ej: Limpieza física, Actualizar software
-    frecuencia = db.Column(db.String(50), nullable=False)   # Ej: Mensual, Trimestral
-    ultima_fecha = db.Column(db.Date, nullable=False)      # Cuándo se hizo por última vez
-    proxima_fecha = db.Column(db.Date, nullable=False)     # Cuándo le toca obligatoriamente
+    tipo_tarea = db.Column(db.String(150), nullable=False)
+    frecuencia = db.Column(db.String(50), nullable=False)  
+    ultima_fecha = db.Column(db.Date, nullable=False)      
+    proxima_fecha = db.Column(db.Date, nullable=False)     
 
 # ==========================================
 # RUTAS DE LA APLICACIÓN
@@ -121,7 +137,7 @@ def registro():
             nombre=nombre,
             apellido=apellido,
             cedula=f"V-{cedula}", 
-            codigo_asignado=codigo,
+            codigo_assigned=codigo,
             estado="Activo" 
         )
 
@@ -225,10 +241,8 @@ def crear_mantenimiento():
     tipo_tarea_form = request.form.get('tipo_tarea')
     frecuencia_form = request.form.get('frecuencia')
     
-    # Automatización: Se registra que se hizo HOY por primera vez
     hoy = date.today()
     
-    # Calculamos de una vez su próxima fecha de vencimiento según la frecuencia elegida
     if frecuencia_form == "Mensual":
         proxima = hoy + timedelta(days=30)
     elif frecuencia_form == "Trimestral":
@@ -238,7 +252,6 @@ def crear_mantenimiento():
     else:
         proxima = hoy + timedelta(days=365)
         
-    # Guardamos en la base de datos
     nueva_tarea = Mantenimiento(
         laboratorio=laboratorio_form,
         tipo_tarea=tipo_tarea_form,
@@ -284,7 +297,6 @@ def acceso():
     if 'usuario' not in session:
         return redirect(url_for('login'))
     
-    # CANDADO DE ROL: Si no es el admin real, lo saca al home
     if session['usuario'] != 'admin':
         flash("Acceso denegado: No tienes permisos de administrador.", "error")
         return redirect(url_for('home'))
@@ -304,7 +316,6 @@ def cambiar_estado_usuario(usuario_id):
     if 'usuario' not in session:
         return redirect(url_for('login'))
         
-    # CANDADO DE ROL: Evita peticiones maliciosas externas en esta acción
     if session['usuario'] != 'admin':
         flash("Acceso denegado: Operación no permitida.", "error")
         return redirect(url_for('home'))
@@ -321,7 +332,7 @@ def cambiar_estado_usuario(usuario_id):
         usuario_a_cambiar.estado = "Activo"
         
     db.session.commit()
-    flash(f"Estado del usuario '{usuario_a_cambiar.username}' actualizado correctamente.", "success")
+    flash(f"Estado del usuario '{usuario_a_cambiar.username}' updated correctamente.", "success")
     return redirect(url_for('acceso'))
 
 @app.route('/logout')
@@ -342,19 +353,14 @@ def completar_mantenimiento(equipo_id):
     flash(f"El equipo '{equipo.nombre}' ahora está Operativo.", "success")
     return redirect(url_for('home'))
 
-from flask import Response, make_response
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
+# ==========================================
+# RUTAS DE EXPORTACIÓN ULTRA-SEGURAS
+# ==========================================
 
-# ==========================================
-# 1. RUTA EXCEL CORREGIDA
-# ==========================================
 @app.route('/exportar/excel')
 def exportar_excel():
+    todos_los_equipos = Equipo.query.all()
+        
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Inventario de Laboratorio"
@@ -380,7 +386,6 @@ def exportar_excel():
     ws.row_dimensions[1].height = 30
     ws.append([])
     
-    # Cabeceras que coinciden con tu tabla HTML
     cabeceras = ["ID Equipo", "Nombre / Modelo", "Laboratorio", "Estado"]
     ws.append(cabeceras)
     
@@ -392,27 +397,38 @@ def exportar_excel():
         cell.alignment = align_centro
         cell.border = borde_delgado
         
-    # USAMOS TU CONSULTA REAL (Asegúrate de que la clase de tu BD sea 'Equipo' en minúscula/mayúscula como la tengas arriba)
-    todos_los_equipos = Equipo.query.all() 
-    
     fila_actual = 4
-    for idx, equipo in enumerate(todos_los_equipos):
-        # Mapeo exacto de tus variables del HTML
-        datos_fila = [f"#PC-0{equipo.id}", equipo.nombre, equipo.laboratorio, equipo.estado]
-        ws.append(datos_fila)
-        
-        ws.row_dimensions[fila_actual].height = 20
-        for col_num in range(1, len(datos_fila) + 1):
-            cell = ws.cell(row=fila_actual, column=col_num)
-            cell.font = font_datos
-            cell.border = borde_delgado
-            if col_num in [1, 4]:
-                cell.alignment = align_centro
-            else:
-                cell.alignment = align_izquierda
-            if idx % 2 != 0:
-                cell.fill = fill_cebra
-        fila_actual += 1
+    
+    # CONTROL DE BASE DE DATOS VACÍA
+    if not todos_los_equipos:
+        ws.append(["No hay equipos registrados en el sistema", "", "", ""])
+        ws.merge_cells(start_row=fila_actual, start_column=1, end_row=fila_actual, end_column=4)
+        cell = ws.cell(row=fila_actual, column=1)
+        cell.font = font_datos
+        cell.alignment = align_centro
+    else:
+        for idx, equipo in enumerate(todos_los_equipos):
+            # Convertimos a string de manera segura previniendo valores None
+            id_safe = f"#PC-0{equipo.id}" if equipo.id else "#PC-00"
+            nombre_safe = str(equipo.nombre) if equipo.nombre else "S/N"
+            lab_safe = str(equipo.laboratorio) if equipo.laboratorio else "Sin Asignar"
+            estado_safe = str(equipo.estado) if equipo.estado else "Disponible"
+            
+            datos_fila = [id_safe, nombre_safe, lab_safe, estado_safe]
+            ws.append(datos_fila)
+            
+            ws.row_dimensions[fila_actual].height = 20
+            for col_num in range(1, len(datos_fila) + 1):
+                cell = ws.cell(row=fila_actual, column=col_num)
+                cell.font = font_datos
+                cell.border = borde_delgado
+                if col_num in [1, 4]:
+                    cell.alignment = align_centro
+                else:
+                    cell.alignment = align_izquierda
+                if idx % 2 != 0:
+                    cell.fill = fill_cebra
+            fila_actual += 1
         
     for col in ws.columns:
         max_len = 0
@@ -422,25 +438,25 @@ def exportar_excel():
             if cell.value: max_len = max(max_len, len(str(cell.value)))
         ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
         
-    response = Response(
-        openpyxl.writer.excel.save_virtual_workbook(wb),
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='reporte_inventario.xlsx'
     )
-    response.headers["Content-Disposition"] = "attachment; filename=reporte_inventario.xlsx"
-    return response
 
-
-# ==========================================
-# 2. RUTA PDF CORREGIDA
-# ==========================================
 @app.route('/exportar/pdf')
 def exportar_pdf():
-    response = make_response()
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'attachment; filename=reporte_inventario.pdf'
+    todos_los_equipos = Equipo.query.all()
+
+    pdf_out = io.BytesIO()
     
     doc = SimpleDocTemplate(
-        response, pagesize=A4,
+        pdf_out, pagesize=A4,
         rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40
     )
     
@@ -471,14 +487,27 @@ def exportar_pdf():
         Paragraph("Estado", style_celda_cabecera)
     ]]
     
-    todos_los_equipos = Equipo.query.all()
-    for equipo in todos_los_equipos:
+    # CONTROL DE BASE DE DATOS VACÍA EN PDF
+    if not todos_los_equipos:
         tabla_datos.append([
-            Paragraph(f"#PC-0{equipo.id}", style_celda_datos),
-            Paragraph(equipo.nombre, style_celda_datos),
-            Paragraph(equipo.laboratorio, style_celda_datos),
-            Paragraph(equipo.estado, style_celda_datos)
+            Paragraph("No hay equipos registrados en el sistema actualmente.", style_celda_datos),
+            Paragraph("", style_celda_datos),
+            Paragraph("", style_celda_datos),
+            Paragraph("", style_celda_datos)
         ])
+    else:
+        for equipo in todos_los_equipos:
+            id_safe = f"#PC-0{equipo.id}" if equipo.id else "#PC-00"
+            nombre_safe = str(equipo.nombre) if equipo.nombre else "S/N"
+            lab_safe = str(equipo.laboratorio) if equipo.laboratorio else "Sin Asignar"
+            estado_safe = str(equipo.estado) if equipo.estado else "Disponible"
+            
+            tabla_datos.append([
+                Paragraph(id_safe, style_celda_datos),
+                Paragraph(nombre_safe, style_celda_datos),
+                Paragraph(lab_safe, style_celda_datos),
+                Paragraph(estado_safe, style_celda_datos)
+            ])
         
     anchos_columnas = [65, 180, 150, 120]
     tabla_pdf = Table(tabla_datos, colWidths=anchos_columnas, repeatRows=1)
@@ -492,15 +521,27 @@ def exportar_pdf():
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#D9D9D9')),
     ])
     
-    for i in range(1, len(tabla_datos)):
-        if i % 2 == 0:
-            estilo_tabla.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F2F5F8'))
+    # Si está vacía, hacemos un span para que el texto ocupe toda la fila
+    if not todos_los_equipos:
+        estilo_tabla.add('SPAN', (0, 1), (-1, 1))
+        estilo_tabla.add('ALIGN', (0, 1), (-1, 1), 'CENTER')
+    else:
+        for i in range(1, len(tabla_datos)):
+            if i % 2 == 0:
+                estilo_tabla.add('BACKGROUND', (0, i), (-1, i), colors.HexColor('#F2F5F8'))
             
     tabla_pdf.setStyle(estilo_tabla)
     story.append(tabla_pdf)
     
     doc.build(story)
-    return response
+    pdf_out.seek(0)
+    
+    return send_file(
+        pdf_out,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name='reporte_inventario.pdf'
+    )
 
 # ==========================================
 # BLOQUE DE ARRANQUE ÚNICO (AL FINAL)
@@ -513,7 +554,7 @@ if __name__ == '__main__':
         if not admin_existente:
             admin_por_defecto = Usuario(
                 username="admin", password="admin", nombre="Yorman",
-                apellido="Blanco", cedula="V-30397167", codigo_asignado="ADM-911", estado="Activo"
+                apellido="Blanco", cedula="V-30397167", codigo_assigned="ADM-911", estado="Activo"
             )
             db.session.add(admin_por_defecto)
             db.session.commit()
@@ -525,8 +566,5 @@ if __name__ == '__main__':
             db.session.add_all([t1, t2, t3])
             db.session.commit()
 
-
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-   
