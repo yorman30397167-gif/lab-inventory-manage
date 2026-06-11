@@ -144,13 +144,17 @@ def registro():
     if request.method == 'POST':
         nombre = request.form.get('nombre')
         apellido = request.form.get('apellido')
-        cedula = request.form.get('cedula')
+        cedula_raw = request.form.get('cedula', '').strip()
         codigo_assigned = request.form.get('codigo')
         username = request.form.get('username')
         password = request.form.get('password')
 
+        # Limpiamos la cédula: si el usuario ya escribió "V-", se lo quitamos para que no se duplique
+        cedula_limpia = cedula_raw.replace('V-', '').replace('v-', '').strip()
+        cedula_final = f"V-{cedula_limpia}"
+
         usuario_repetido = Usuario.query.filter_by(username=username).first()
-        cedula_repetida = Usuario.query.filter_by(cedula=f"V-{cedula}").first()
+        cedula_repetida = Usuario.query.filter_by(cedula=cedula_final).first()
 
         if usuario_repetido:
             flash("El nombre de usuario ya está en uso. Elige otro.", "error")
@@ -165,7 +169,7 @@ def registro():
             password=password,
             nombre=nombre,
             apellido=apellido,
-            cedula=f"V-{cedula}", 
+            cedula=cedula_final, 
             codigo_assigned=codigo_assigned,
             estado="Activo" 
         )
