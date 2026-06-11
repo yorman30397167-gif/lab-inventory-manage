@@ -58,6 +58,12 @@
         .btn-toggle.activate { background-color: #d1fae5; color: #065f46; border: 1px solid rgba(16, 185, 129, 0.2); }
         .btn-toggle.activate:hover { background-color: #a7f3d0; transform: translateY(-1px); }
         
+        /* Botones Nuevos: Editar y Eliminar */
+        .btn-edit { background-color: #e0f2fe; color: #0369a1; border: 1px solid rgba(14, 165, 233, 0.2); margin-right: 4px; }
+        .btn-edit:hover { background-color: #bae6fd; transform: translateY(-1px); }
+        .btn-delete { background-color: #ffedd5; color: #c2410c; border: 1px solid rgba(249, 115, 22, 0.2); }
+        .btn-delete:hover { background-color: #fed7aa; transform: translateY(-1px); }
+
         /* Alertas Estilizadas */
         .alert-flash { 
             display: flex; 
@@ -77,6 +83,37 @@
         
         .close-alert { background: none; border: none; font-size: 18px; font-weight: bold; cursor: pointer; color: inherit; opacity: 0.6; transition: 0.2s; }
         .close-alert:hover { opacity: 1; }
+
+        /* VENTANA MODAL (SOPORTE DE EDICIÓN) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 100%; max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+            animation: fadeIn 0.2s ease-out;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { font-size: 18px; color: #0f172a; }
+        .modal-close { font-size: 22px; font-weight: bold; cursor: pointer; color: #64748b; background: none; border: none; }
+        .modal-close:hover { color: #0f172a; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; color: #1e293b; }
+        .form-group input:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
+        
+        .btn-submit { width: 100%; background-color: #0ea5e9; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-submit:hover { background-color: #0284c7; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-10px); }
@@ -123,7 +160,7 @@
                     </h2>
                     <div style="display: flex; gap: 20px; margin-top: 6px; font-size: 13px; color: #334155;">
                         <p><strong>C.I:</strong> {{ admin.cedula }}</p>
-                        <p><strong>Código Asignado:</strong> <span style="font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #0f172a;">{{ admin.codigo_asignado }}</span></p>
+                        <p><strong>Código Asignado:</strong> <span style="font-family: monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #0f172a;">{{ admin.codigo_assigned }}</span></p>
                         <p><strong>Estatus:</strong> <span style="color: #16a34a; font-weight: bold;">🟢 Activo</span></p>
                     </div>
                 </div>
@@ -145,7 +182,7 @@
                         <th>Código Personal</th>
                         <th>Nombre de Usuario</th>
                         <th>Estado Actual</th>
-                        <th>Acción de Permiso</th>
+                        <th>Acciones Administrativas</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -163,20 +200,69 @@
                             {% endif %}
                         </td>
                         <td>
-                            <form action="{{ url_for('cambiar_estado_usuario', usuario_id=usuario.id) }}" method="POST" style="margin:0;">
-                                {% if usuario.estado == "Activo" %}
-                                    <button type="submit" class="btn-toggle deactivate">🔒 Desactivar</button>
-                                智 {% else %}
-                                    <button type="submit" class="btn-toggle activate">🔓 Activar</button>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <form action="{{ url_for('cambiar_estado_usuario', usuario_id=usuario.id) }}" method="POST" style="margin:0; display:inline;">
+                                    {% if usuario.estado == "Activo" %}
+                                        <button type="submit" class="btn-toggle deactivate">🔒 Desactivar</button>
+                                    {% else %}
+                                        <button type="submit" class="btn-toggle activate">🔓 Activar</button>
+                                    {% endif %}
+                                </form>
+
+                                {% if usuario.username != session['usuario'] %}
+                                    <button class="btn-toggle btn-edit" onclick="abrirModalEdicion('{{ usuario.id }}', '{{ usuario.username }}')">✏️ Soporte</button>
+
+                                    <form action="{{ url_for('eliminar_usuario', usuario_id=usuario.id) }}" method="POST" style="margin:0; display:inline;" onsubmit="return confirm('¿Estás totalmente seguro de eliminar permanentemente al usuario @{{ usuario.username }}? Esta acción borrará todos sus registros del sistema.');">
+                                        <button type="submit" class="btn-toggle btn-delete">🗑️ Eliminar</button>
+                                    </form>
                                 {% endif %}
-                            </form>
+                            </div>
                         </td>
                     </tr>
+
+                    <div id="modal-{{ usuario.id }}" class="modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>⚙️ Soporte: Restablecer Credenciales</h3>
+                                <button class="modal-close" onclick="cerrarModalEdicion('{{ usuario.id }}')">&times;</button>
+                            </div>
+                            <form action="{{ url_for('editar_usuario', usuario_id=usuario.id) }}" method="POST">
+                                <div class="form-group">
+                                    <label>Nombre de Usuario Actualizado</label>
+                                    <input type="text" id="input-user-{{ usuario.id }}" name="username" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nueva Contraseña de Soporte</label>
+                                    <input type="text" name="password" placeholder="Escribe la clave temporal aquí" required>
+                                </div>
+                                <button type="submit" class="btn-submit">💾 Aplicar Cambios Técnicos</button>
+                            </form>
+                        </div>
+                    </div>
+
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <script>
+        function abrirModalEdicion(id, username) {
+            document.getElementById('modal-' + id).style.display = 'flex';
+            document.getElementById('input-user-' + id).value = username;
+        }
+
+        function cerrarModalEdicion(id) {
+            document.getElementById('modal-' + id).style.display = 'none';
+        }
+
+        // Cerrar el modal si se hace clic fuera del recuadro blanco
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
 
 </body>
 </html>
