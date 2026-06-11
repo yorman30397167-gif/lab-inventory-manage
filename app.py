@@ -14,8 +14,14 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_muy_segura_y_larga')
 
-# Configuración optimizada para evitar errores de conexión al despertar el servidor
+# Agrega estas líneas para mejorar la estabilidad de la sesión
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=False, # Ponlo en True solo si usas HTTPS (Render lo gestiona)
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=60) # Que la sesión dure 1 hora
+
 engine = create_engine('postgresql+psycopg2://usuario:password@host/db', 
                        pool_pre_ping=True, 
                        pool_recycle=3600)
@@ -426,8 +432,6 @@ def editar_usuario(usuario_id):
 @app.route('/acceso/editar_credenciales/<int:usuario_id>', methods=['POST'])
 def editar_credenciales(usuario_id):
     usuario = Usuario.query.get_or_404(usuario_id)
-    
-    # 1. Asignar nuevos datos
     usuario.username = request.form.get('username')
     usuario.password = request.form.get('password')
     usuario.es_temporal = True 
