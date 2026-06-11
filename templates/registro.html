@@ -6,7 +6,7 @@
     <title>Lab-Inventory - Registro</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        body { background-color: #f4f6f9; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .register-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 450px; }
         h2 { text-align: center; color: #0f172a; margin-bottom: 20px; font-size: 24px; }
         .form-group { margin-bottom: 15px; }
@@ -20,6 +20,9 @@
         .footer-link a { color: #3b82f6; text-decoration: none; font-weight: bold; }
         .footer-link a:hover { text-decoration: underline; }
         .alert { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center; font-weight: 500; }
+        
+        /* El cuadro azul rediseñado para salir abajo y más pequeño */
+        .badge-azul-abajo { background-color: #3b82f6; color: white; padding: 10px 20px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.15); margin-top: 20px; text-align: center; }
     </style>
 </head>
 <body>
@@ -40,36 +43,46 @@
     <form action="{{ url_for('registro') }}" method="POST">
         <div class="form-group row">
             <div>
-                <!-- Campo Nombre -->
-<label>Nombre</label>
-<input type="text" name="nombre" placeholder="Ej. Juan" autocomplete="off">
-
-<!-- Campo Apellido -->
-<label>Apellido</label>
-<input type="text" name="apellido" placeholder="Ej. Pérez" autocomplete="off">
-
-<!-- Campo Cédula de Identidad -->
-<label>Cédula de Identidad</label>
-<input type="text" name="cedula" placeholder="Ej. 12345678" autocomplete="off">
-
-<!-- Campo Código Personal -->
-<label>Código Personal</label>
-<input type="text" name="codigo_assigned" placeholder="Ej. TEC-001" autocomplete="off" required>
-<!-- Campo Nombre de Usuario -->
-<label>Nombre de Usuario (Username)</label>
-<input type="text" name="username" placeholder="Ej. jperez" autocomplete="off" required>
-
-<!-- Campo Contraseña -->
-<label>Contraseña</label>
-<input type="password" name="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
+                <label>Nombre</label>
+                <input type="text" name="nombre" placeholder="Ej. Juan" autocomplete="off" required>
+            </div>
+            <div>
+                <label>Apellido</label>
+                <input type="text" name="apellido" placeholder="Ej. Pérez" autocomplete="off" required>
+            </div>
         </div>
 
-        <button type="submit" class="btn-submit">💾 Registrarse e Ingresar</button>
+        <div class="form-group row">
+            <div>
+                <label>Cédula de Identidad</label>
+                <input type="text" name="cedula" placeholder="Ej. 12345678" autocomplete="off" required>
+            </div>
+            <div>
+                <label>Código Personal</label>
+                <input type="text" name="codigo" placeholder="Ej. TEC-001" autocomplete="off" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Nombre de Usuario (Username)</label>
+            <input type="text" name="username" placeholder="Ej. jperez" autocomplete="off" required>
+        </div>
+
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" name="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" required>
+        </div>
+
+        <button type="submit" class="btn-submit">Crear nuevo usuario</button>
     </form>
 
     <div class="footer-link">
         ¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Inicia sesión aquí</a>
     </div>
+</div>
+
+<div class="badge-azul-abajo">
+    <span>💾</span> Registrarse e Ingresar
 </div>
 
 </body>

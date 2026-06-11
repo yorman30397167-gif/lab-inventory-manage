@@ -145,9 +145,9 @@ def registro():
         nombre = request.form.get('nombre')
         apellido = request.form.get('apellido')
         cedula = request.form.get('cedula')
-        codigo = request.form.get('codigo')
-        username = request.form.get('usuario')
-        password = request.form.get('contrasena')
+        codigo_assigned = request.form.get('codigo')
+        username = request.form.get('username')
+        password = request.form.get('password')
 
         usuario_repetido = Usuario.query.filter_by(username=username).first()
         cedula_repetida = Usuario.query.filter_by(cedula=f"V-{cedula}").first()
@@ -166,7 +166,7 @@ def registro():
             nombre=nombre,
             apellido=apellido,
             cedula=f"V-{cedula}", 
-            codigo_assigned=codigo,
+            codigo_assigned=codigo_assigned,
             estado="Activo" 
         )
 
