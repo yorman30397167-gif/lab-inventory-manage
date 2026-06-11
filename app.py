@@ -15,15 +15,16 @@ from reportlab.lib import colors
 
 app = Flask(__name__)
 
+# Configuración optimizada para evitar errores de conexión al despertar el servidor
 engine = create_engine('postgresql+psycopg2://usuario:password@host/db', 
                        pool_pre_ping=True, 
                        pool_recycle=3600)
+
 # ==========================================
 # CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE
 # ==========================================
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
-   
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg2://')
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project_data.db'
@@ -35,7 +36,7 @@ app.secret_key = 'una_clave_secreta_muy_segura_y_dificil_de_adivinar'
 db = SQLAlchemy(app)
 
 # ==========================================
-# 2. MODELOS DE LA BASE DE DATOS (Se definen ANTES del app_context)
+# 2. MODELOS DE LA BASE DE DATOS
 # ==========================================
 
 class Equipo(db.Model):
@@ -68,10 +69,8 @@ class Mantenimiento(db.Model):
 # 3. CREACIÓN AUTOMÁTICA DE TABLAS Y DATOS INICIALES
 # ==========================================
 with app.app_context():
-    # Ahora que los modelos ya se cargaron en memoria, SQLAlchemy sí creará las tablas en Postgres
     db.create_all()  
     
-    # Verificar y crear administrador por defecto si no existe
     admin_existente = Usuario.query.filter_by(username="admin").first()
     if not admin_existente:
         admin_por_defecto = Usuario(
@@ -81,7 +80,6 @@ with app.app_context():
         db.session.add(admin_por_defecto)
         db.session.commit()
         
-    # Verificar y crear tareas de soporte iniciales si la tabla está vacía
     if Mantenimiento.query.count() == 0:
         t1 = Mantenimiento(laboratorio="Laboratorio 1", tipo_tarea="Soplado de Polvo y Pasta Térmica", frecuencia="Mensual", ultima_fecha=date.today()-timedelta(days=35), proxima_fecha=date.today()-timedelta(days=5)) 
         t2 = Mantenimiento(laboratorio="Laboratorio 2", tipo_tarea="Actualización de Antivirus Nod32", frecuencia="Mensual", ultima_fecha=date.today()-timedelta(days=25), proxima_fecha=date.today()+timedelta(days=5))  
