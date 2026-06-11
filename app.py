@@ -51,7 +51,8 @@ class Usuario(db.Model):
     apellido = db.Column(db.String(100), nullable=False)
     cedula = db.Column(db.String(20), unique=True, nullable=False)
     codigo_assigned = db.Column(db.String(20), unique=True, nullable=False)
-    estado = db.Column(db.String(20), default="Activo")   
+    estado = db.Column(db.String(20), default="Activo")
+    es_temporal = db.Column(db.Boolean, default=False)   
 
 class Mantenimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -125,8 +126,9 @@ def login():
         
         if usuario_valido:
             if usuario_valido.estado == "Activo":
-                session['usuario'] = usuario_valido.username  
-                flash('¡Inicio de sesión exitoso!', 'success')
+                session['usuario'] = usuario_valido.username
+                if user.es_temporal:
+                    return redirect(url_for('cambiar_clave'))  
                 return redirect(url_for('home'))
             else:
                 flash('Tu usuario está Inactivo. Comunícate con soporte.', 'error')
@@ -414,17 +416,25 @@ def editar_usuario(usuario_id):
         return redirect(url_for('home'))
         
     u = Usuario.query.get_or_404(usuario_id)
-    # Obtenemos los datos directamente del formulario
     nuevo_username = request.form.get('username')
     nueva_password = request.form.get('password')
-    
-    # FORZAMOS el guardado sin validaciones complejas para probar
+    u.es_temporal = True
     u.username = nuevo_username
     u.password = nueva_password
     
     db.session.commit()
     flash(f"Usuario {u.username} actualizado correctamente.", "success")
     return redirect(url_for('acceso'))
+
+@app.route('/cambiar_clave', methods=['GET', 'POST'])
+def cambiar_clave():
+    usuario = Usuario.query.filter_by(username=session['usuario']).first()
+    if request.method == 'POST':
+        usuario.password = request.form.get('password')
+        usuario.es_temporal = False # <--- Ya no es temporal
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template('cambiar_clave.html')
 
 @app.route('/logout')
 def logout():
