@@ -25,7 +25,7 @@
 <body>
 
 <div class="register-container">
-    <h2>Crear Cuenta Nueva</h2>
+    <h2>Crear nuevo usuario</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -40,34 +40,29 @@
     <form action="{{ url_for('registro') }}" method="POST">
         <div class="form-group row">
             <div>
-                <label>Nombre</label>
-                <input type="text" name="nombre" placeholder="Ej. Yorman" required>
-            </div>
-            <div>
-                <label>Apellido</label>
-                <input type="text" name="apellido" placeholder="Ej. Blanco" required>
-            </div>
-        </div>
+                <!-- Campo Nombre -->
+<label>Nombre</label>
+<input type="text" name="nombre" placeholder="Ej. Juan" autocomplete="off">
 
-        <div class="form-group row">
-            <div>
-                <label>Cédula de Identidad</label>
-                <input type="text" name="cedula" placeholder="Ej. 30397167" required>
-            </div>
-            <div>
-                <label>Código Personal</label>
-                <input type="text" name="codigo" placeholder="Ej. ADM-002" required>
-            </div>
-        </div>
+<!-- Campo Apellido -->
+<label>Apellido</label>
+<input type="text" name="apellido" placeholder="Ej. Pérez" autocomplete="off">
 
-        <div class="form-group">
-            <label>Nombre de Usuario (Username)</label>
-            <input type="text" name="usuario" placeholder="Ej. yorman_911" required>
-        </div>
+<!-- Campo Cédula de Identidad -->
+<label>Cédula de Identidad</label>
+<input type="text" name="cedula" placeholder="Ej. 12345678" autocomplete="off">
 
-        <div class="form-group">
-            <label>Contraseña</label>
-            <input type="password" name="contrasena" placeholder="Crea una contraseña segura" required>
+<!-- Campo Código Personal -->
+<label>Código Personal</label>
+<input type="text" name="codigo_assigned" placeholder="Ej. TEC-001" autocomplete="off">
+
+<!-- Campo Nombre de Usuario -->
+<label>Nombre de Usuario (Username)</label>
+<input type="text" name="username" placeholder="Ej. jperez" autocomplete="off">
+
+<!-- Campo Contraseña -->
+<label>Contraseña</label>
+<input type="password" name="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
         </div>
 
         <button type="submit" class="btn-submit">💾 Registrarse e Ingresar</button>
