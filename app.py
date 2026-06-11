@@ -410,17 +410,20 @@ def eliminar_usuario(usuario_id):
 
 @app.route('/acceso/editar/<int:usuario_id>', methods=['POST'])
 def editar_usuario(usuario_id):
-    # ... (tu lógica de edición existente)
-    usuario_a_editar = Usuario.query.get_or_404(usuario_id)
-    nuevo_username = request.form.get('username', '').strip()
-    nueva_password = request.form.get('password', '')
+    if session.get('usuario') != 'admin':
+        return redirect(url_for('home'))
+        
+    u = Usuario.query.get_or_404(usuario_id)
+    # Obtenemos los datos directamente del formulario
+    nuevo_username = request.form.get('username')
+    nueva_password = request.form.get('password')
     
-    if nuevo_username and nueva_password:
-        usuario_a_editar.username = nuevo_username
-        usuario_a_editar.password = nueva_password
-        db.session.commit()
-        flash("Credenciales actualizadas.", "success")
+    # FORZAMOS el guardado sin validaciones complejas para probar
+    u.username = nuevo_username
+    u.password = nueva_password
     
+    db.session.commit()
+    flash(f"Usuario {u.username} actualizado correctamente.", "success")
     return redirect(url_for('acceso'))
 
 @app.route('/logout')
