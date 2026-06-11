@@ -20,7 +20,8 @@ app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_muy_segura_y_larga')
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SECURE=False, # Ponlo en True solo si usas HTTPS (Render lo gestiona)
-    PERMANENT_SESSION_LIFETIME=timedelta(minutes=60) # Que la sesión dure 1 hora
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=60)
+)
 
 engine = create_engine('postgresql+psycopg2://usuario:password@host/db', 
                        pool_pre_ping=True, 
