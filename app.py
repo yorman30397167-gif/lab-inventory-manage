@@ -427,13 +427,19 @@ def editar_usuario(usuario_id):
 def editar_credenciales(usuario_id):
     usuario = Usuario.query.get_or_404(usuario_id)
     
-    # Actualizamos los datos
+    # 1. Asignar nuevos datos
     usuario.username = request.form.get('username')
     usuario.password = request.form.get('password')
-    usuario.es_temporal = True  # ¡Esto es lo que activa el bloqueo temporal!
+    usuario.es_temporal = True 
     
-    db.session.commit()
-    flash(f"Credenciales de {usuario.nombre} actualizadas. Clave temporal establecida.", "success")
+    # 2. GUARDAR EN LA BASE DE DATOS (Vital)
+    try:
+        db.session.commit()
+        flash(f"Credenciales actualizadas para {usuario.nombre}.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error al guardar: {str(e)}", "error")
+        
     return redirect(url_for('acceso'))
 
 @app.route('/cambiar_clave', methods=['GET', 'POST'])
