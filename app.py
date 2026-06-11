@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
 import os
 import io
+import re
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from reportlab.lib.pagesizes import A4
@@ -146,17 +147,39 @@ def registro():
         apellido = request.form.get('apellido')
         cedula_raw = request.form.get('cedula', '').strip()
         codigo_assigned = request.form.get('codigo')
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
 
-        # Limpiamos la cédula
+        # ==========================================
+        # NUEVAS RESTRICCIONES DE SEGURIDAD
+        # ==========================================
+        
+        # 1. Validación del campo de Usuario (Debe contener al menos una Mayúscula y una Minúscula)
+        if not (any(c.isupper() for c in username) and any(c.islower() for c in username)):
+            flash("El nombre de usuario debe contener obligatoriamente letras mayúsculas y minúsculas.", "error")
+            return render_template('registro.html')
+
+        # 2. Validación de la Contraseña
+        # - Mayor a 12 caracteres: len(password) > 12
+        # - Al menos una mayúscula: (?=.*[A-Z])
+        # - Al menos una minúscula: (?=.*[a-z])
+        # - Al menos un número: (?=.*\d)
+        # - Al menos un carácter especial: (?=.*[!@#$%^&*(),.?":{}|<>_+\-*/\[\]])
+        patron_password = r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_+\-*/\[\]]).{13,}$'
+        
+        if not re.match(patron_password, password):
+            flash("La contraseña es insegura. Debe ser mayor a 12 dígitos y contener: letras mayúsculas, minúsculas, números y al menos un carácter especial.", "error")
+            return render_template('registro.html')
+
+        # ==========================================
+        # VALIDACIONES DE DUPLICADOS EN BASE DE DATOS
+        # ==========================================
         cedula_limpia = cedula_raw.replace('V-', '').replace('v-', '').strip()
         cedula_final = f"V-{cedula_limpia}"
 
-        # VALIDACIONES CONTRA LA BASE DE DATOS
         usuario_repetido = Usuario.query.filter_by(username=username).first()
         cedula_repetida = Usuario.query.filter_by(cedula=cedula_final).first()
-        codigo_repetido = Usuario.query.filter_by(codigo_assigned=codigo_assigned).first() # <--- NUEVA LINEA
+        codigo_repetido = Usuario.query.filter_by(codigo_assigned=codigo_assigned).first()
 
         if usuario_repetido:
             flash("El nombre de usuario ya está en uso. Elige otro.", "error")
@@ -166,10 +189,11 @@ def registro():
             flash("Esta cédula ya se encuentra registrada en el sistema.", "error")
             return render_template('registro.html')
 
-        if codigo_repetido: # <--- NUEVA VALIDACIÓN
+        if codigo_repetido:
             flash("Este código de asignación ya está registrado por otro usuario.", "error")
             return render_template('registro.html')
 
+        # Si todo está perfecto, se procede a crear el usuario
         nuevo_usuario = Usuario(
             username=username,
             password=password,
