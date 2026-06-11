@@ -1,3 +1,5 @@
+from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
@@ -13,6 +15,9 @@ from reportlab.lib import colors
 
 app = Flask(__name__)
 
+engine = create_engine('postgresql+psycopg2://usuario:password@host/db', 
+                       pool_pre_ping=True, 
+                       pool_recycle=3600)
 # ==========================================
 # CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE
 # ==========================================
