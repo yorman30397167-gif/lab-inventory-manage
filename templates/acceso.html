@@ -32,7 +32,14 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid rgba(255, 255, 255, 0.1); padding-bottom: 15px; }
         .header h1 { font-size: 26px; color: #f8fafc; }
 
-        .table-container { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(8px); border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); padding: 20px; border: 1px solid rgba(255, 255, 255, 0.5); }
+        .table-container { 
+            background: rgba(255, 255, 255, 0.92); 
+            backdrop-filter: blur(8px);
+            border-radius: 10px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); 
+            padding: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
         .table-container h2 { font-size: 18px; margin-bottom: 15px; color: #0f172a; font-weight: 700; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { background-color: rgba(241, 245, 249, 0.8); padding: 12px; color: #475569; font-size: 14px; border-bottom: 2px solid #cbd5e1; font-weight: 600; }
@@ -41,20 +48,51 @@
 
         .btn-toggle { border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; text-decoration: none; display: inline-block; }
         .btn-toggle.deactivate { background-color: #fee2e2; color: #991b1b; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-toggle.deactivate:hover { background-color: #fca5a5; transform: translateY(-1px); }
         .btn-toggle.activate { background-color: #d1fae5; color: #065f46; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .btn-toggle.activate:hover { background-color: #a7f3d0; transform: translateY(-1px); }
+        
         .btn-edit { background-color: #e0f2fe; color: #0369a1; border: 1px solid rgba(14, 165, 233, 0.2); margin-right: 4px; }
+        .btn-edit:hover { background-color: #bae6fd; transform: translateY(-1px); }
         .btn-delete { background-color: #ffedd5; color: #c2410c; border: 1px solid rgba(249, 115, 22, 0.2); }
+        .btn-delete:hover { background-color: #fed7aa; transform: translateY(-1px); }
 
-        .alert-flash { padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .alert-flash { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            font-size: 14px; 
+            font-weight: 500; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
         .alert-flash.success { background-color: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
-
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
-        .modal-content { background-color: white; padding: 25px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 100%; max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+        }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-close { background: none; border: none; cursor: pointer; font-size: 22px; }
+        .modal-close { font-size: 22px; font-weight: bold; cursor: pointer; color: #64748b; background: none; border: none; }
+        
         .form-group { margin-bottom: 15px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
-        .btn-submit { width: 100%; background-color: #0ea5e9; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        .btn-submit { width: 100%; background-color: #0ea5e9; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -70,50 +108,81 @@
     </div>
 
     <div class="main-content">
-        <div class="header"><h1>Gestión de Usuarios</h1></div>
+        <div class="header"><h1>Gestión de Usuarios y Control de Acceso</h1></div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert-flash {{ category }}">
+                  <span>📢 {{ message }}</span>
+                  <button class="close-alert" onclick="this.parentElement.style.display='none';">&times;</button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
         <div class="table-container">
+            <h2>Personal Registrado en el Sistema</h2>
             <table>
                 <thead>
                     <tr>
-                        <th>Nombre</th>
+                        <th>Nombre Completo</th>
                         <th>Cédula</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
+                        <th>Código Personal</th>
+                        <th>Estado Actual</th>
+                        <th>Acciones Administrativas</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for usuario in usuarios %}
                     <tr>
-                        <td>{{ usuario.nombre }} {{ usuario.apellido }}</td>
+                        <td><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></td>
                         <td>{{ usuario.cedula }}</td>
-                        <td>{{ usuario.estado }}</td>
+                        <td><span style="font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">{{ usuario.codigo_assigned }}</span></td>
                         <td>
-                            <form action="{{ url_for('cambiar_estado_usuario', usuario_id=usuario.id) }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn-toggle {% if usuario.estado == 'Activo' %}deactivate{% else %}activate{% endif %}">
-                                    {% if usuario.estado == 'Activo' %}🔒 Desactivar{% else %}🔓 Activar{% endif %}
-                                </button>
-                            </form>
-                            <button class="btn-toggle btn-edit" onclick="abrirModalEdicion('{{ usuario.id }}', '{{ usuario.username }}')">✏️ Soporte</button>
+                            {% if usuario.estado == "Activo" %}
+                                <span style="color: #16a34a; font-weight: bold;">🟢 Activo</span>
+                            {% else %}
+                                <span style="color: #dc2626; font-weight: bold;">🔴 Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <form action="{{ url_for('cambiar_estado_usuario', usuario_id=usuario.id) }}" method="POST" style="margin:0; display:inline;">
+                                    {% if usuario.estado == "Activo" %}
+                                        <button type="submit" class="btn-toggle deactivate">🔒 Desactivar</button>
+                                    {% else %}
+                                        <button type="submit" class="btn-toggle activate">🔓 Activar</button>
+                                    {% endif %}
+                                </form>
+
+                                {% if usuario.username != session['usuario'] %}
+                                    <button class="btn-toggle btn-edit" onclick="abrirModalEdicion('{{ usuario.id }}', '{{ usuario.username }}')">✏️ Soporte</button>
+
+                                    <form action="{{ url_for('eliminar_usuario', usuario_id=usuario.id) }}" method="POST" style="margin:0; display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar permanentemente al usuario @{{ usuario.username }}?');">
+                                        <button type="submit" class="btn-toggle btn-delete">🗑️ Eliminar</button>
+                                    </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
 
                     <div id="modal-{{ usuario.id }}" class="modal">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h3>⚙️ Soporte</h3>
+                                <h3>⚙️ Soporte: Restablecer Credenciales</h3>
                                 <button class="modal-close" onclick="cerrarModalEdicion('{{ usuario.id }}')">&times;</button>
                             </div>
                             <form action="{{ url_for('cambiar_estado_usuario', usuario_id=usuario.id) }}" method="POST">
                                 <div class="form-group">
-                                    <label>Nuevo Usuario</label>
+                                    <label>Nombre de Usuario Actualizado</label>
                                     <input type="text" id="input-user-{{ usuario.id }}" name="username" required>
                                 </div>
                                 <div class="form-group">
-                                    <label>Nueva Contraseña</label>
-                                    <input type="text" name="password" required>
+                                    <label>Nueva Contraseña de Soporte</label>
+                                    <input type="text" name="password" placeholder="Escribe la clave temporal aquí" required>
                                 </div>
-                                <button type="submit" class="btn-submit">💾 Guardar</button>
+                                <button type="submit" class="btn-submit">💾 Aplicar Cambios Técnicos</button>
                             </form>
                         </div>
                     </div>
@@ -124,8 +193,13 @@
     </div>
 
     <script>
-        function abrirModalEdicion(id, username) { document.getElementById('modal-' + id).style.display = 'flex'; }
-        function cerrarModalEdicion(id) { document.getElementById('modal-' + id).style.display = 'none'; }
+        function abrirModalEdicion(id, username) {
+            document.getElementById('modal-' + id).style.display = 'flex';
+            document.getElementById('input-user-' + id).value = username;
+        }
+        function cerrarModalEdicion(id) {
+            document.getElementById('modal-' + id).style.display = 'none';
+        }
     </script>
 </body>
 </html>

@@ -419,6 +419,14 @@ def eliminar_usuario(usuario_id):
     flash(f"El usuario '{usuario_a_eliminar.username}' ha sido eliminado del sistema permanentemente.", "success")
     return redirect(url_for('acceso'))
 
+@app.route('/eliminar-usuario/<int:usuario_id>', methods=['POST'])
+def eliminar_usuario(usuario_id):
+    # Aquí iría tu lógica, por ejemplo:
+    usuario = Usuario.query.get_or_404(usuario_id)
+    db.session.delete(usuario)
+    db.session.commit()
+    flash('Usuario eliminado correctamente', 'success')
+    return redirect(url_for('acceso'))
 
 @app.route('/acceso/editar/<int:usuario_id>', methods=['POST'])
 def editar_usuario(usuario_id):
