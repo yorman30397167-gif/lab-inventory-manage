@@ -3,5 +3,4 @@ Flask-SQLAlchemy
 openpyxl
 reportlab
 gunicorn
-pg8000
 psycopg2-binary
