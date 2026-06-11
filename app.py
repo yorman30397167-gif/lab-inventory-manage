@@ -66,8 +66,11 @@ class Mantenimiento(db.Model):
 # 3. CREACIÓN AUTOMÁTICA DE TABLAS Y DATOS INICIALES
 # ==========================================
 with app.app_context():
-    # Ahora que los modelos ya se cargaron en memoria, SQLAlchemy sí creará las tablas en Postgres
-    db.create_all()  
+   try:
+        db.engine.execute("ALTER TABLE usuario ADD COLUMN es_temporal BOOLEAN DEFAULT FALSE;")
+    except:
+    pass
+   db.create_all()
     
     # Verificar y crear administrador por defecto si no existe
     admin_existente = Usuario.query.filter_by(username="admin").first()
