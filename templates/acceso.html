@@ -148,12 +148,16 @@
                         </td>
                         <td>
                             <div style="display: flex; gap: 4px; align-items: center;">
-                                <form action="{{ url_for('cambiar_estado_usuario', usuario_id=usuario.id) }}" method="POST" style="margin:0; display:inline;">
-                                    {% if usuario.estado == "Activo" %}
-                                        <button type="submit" class="btn-toggle deactivate">🔒 Desactivar</button>
-                                    {% else %}
-                                        <button type="submit" class="btn-toggle activate">🔓 Activar</button>
-                                    {% endif %}
+                                <form action="{{ url_for('editar_credenciales', usuario_id=usuario.id) }}" method="POST">
+                                    <div class="form-group">
+                                        <label>Nombre de Usuario Actualizado</label>
+                                        <input type="text" name="username" value="{{ usuario.username }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Nueva Contraseña</label>
+                                        <input type="text" name="password" placeholder="Escribe la clave temporal aquí" required>
+                                    </div>
+                                    <button type="submit" class="btn-submit">💾 Aplicar Cambios Técnicos</button>
                                 </form>
 
                                 {% if usuario.username != session['usuario'] %}

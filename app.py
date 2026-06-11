@@ -423,14 +423,33 @@ def editar_usuario(usuario_id):
     flash(f"Usuario {u.username} actualizado correctamente.", "success")
     return redirect(url_for('acceso'))
 
+@app.route('/acceso/editar_credenciales/<int:usuario_id>', methods=['POST'])
+def editar_credenciales(usuario_id):
+    usuario = Usuario.query.get_or_404(usuario_id)
+    
+    # Actualizamos los datos
+    usuario.username = request.form.get('username')
+    usuario.password = request.form.get('password')
+    usuario.es_temporal = True  # ¡Esto es lo que activa el bloqueo temporal!
+    
+    db.session.commit()
+    flash(f"Credenciales de {usuario.nombre} actualizadas. Clave temporal establecida.", "success")
+    return redirect(url_for('acceso'))
+
 @app.route('/cambiar_clave', methods=['GET', 'POST'])
 def cambiar_clave():
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+        
     usuario = Usuario.query.filter_by(username=session['usuario']).first()
+    
     if request.method == 'POST':
         usuario.password = request.form.get('password')
-        usuario.es_temporal = False # <--- Ya no es temporal
+        usuario.es_temporal = False  # <--- ESTO ES LO MÁS IMPORTANTE
         db.session.commit()
+        flash("Contraseña actualizada con éxito.", "success")
         return redirect(url_for('home'))
+        
     return render_template('cambiar_clave.html')
 
 @app.route('/logout')
