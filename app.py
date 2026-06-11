@@ -117,26 +117,23 @@ def home():
 def login():
     if 'usuario' in session:
         return redirect(url_for('home'))
-
     if request.method == 'POST':
         usuario_ingresado = request.form['usuario']
         clave_ingresada = request.form['contrasena']
-        
         usuario_valido = Usuario.query.filter_by(username=usuario_ingresado, password=clave_ingresada).first()
-        
         if usuario_valido:
             if usuario_valido.estado == "Activo":
                 session['usuario'] = usuario_valido.username
-                if user.es_temporal:
+                # CORRECCIÓN AQUÍ:
+                if usuario_valido.es_temporal:
                     return redirect(url_for('cambiar_clave'))  
                 return redirect(url_for('home'))
             else:
-                flash('Tu usuario está Inactivo. Comunícate con soporte.', 'error')
+                flash('Tu usuario está Inactivo.', 'error')
                 return render_template('login.html')
         else:
             flash('Usuario o contraseña incorrectos.', 'error')
             return render_template('login.html')
-            
     return render_template('login.html')
 
 @app.route('/registro', methods=['GET', 'POST'])
