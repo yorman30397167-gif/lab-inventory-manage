@@ -1,5 +1,3 @@
-from sqlalchemy import create_engine
-from sqlalchemy.exc import OperationalError
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
@@ -14,38 +12,25 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_muy_segura_y_larga')
 
-# Agrega estas líneas para mejorar la estabilidad de la sesión
+# Configuración única y segura
+app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_muy_segura_y_larga')
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=False, # Ponlo en True solo si usas HTTPS (Render lo gestiona)
+    SESSION_COOKIE_SECURE=False,
     PERMANENT_SESSION_LIFETIME=timedelta(minutes=60)
 )
 
-engine = create_engine('postgresql+psycopg2://usuario:password@host/db', 
-                       pool_pre_ping=True, 
-                       pool_recycle=3600)
-
-# ==========================================
-# CONFIGURACIÓN DE BASE DE DATOS FLEXIBLE
-# ==========================================
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
-    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg2://')
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///project_data.db'
-
+# Configuración de base de datos
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///project_data.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg2://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'una_clave_secreta_muy_segura_y_dificil_de_adivinar' 
 
-# 1. INICIALIZAMOS LA BASE DE DATOS
 db = SQLAlchemy(app)
 
 # ==========================================
-# 2. MODELOS DE LA BASE DE DATOS
+# MODELOS
 # ==========================================
-
 class Equipo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
@@ -62,22 +47,19 @@ class Usuario(db.Model):
     cedula = db.Column(db.String(20), unique=True, nullable=False)
     codigo_assigned = db.Column(db.String(20), unique=True, nullable=False)
     estado = db.Column(db.String(20), default="Activo")
-    es_temporal = db.Column(db.Boolean, default=False)   
+    es_temporal = db.Column(db.Boolean, default=False)
 
 class Mantenimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     laboratorio = db.Column(db.String(100), nullable=False)
     tipo_tarea = db.Column(db.String(150), nullable=False)
-    frecuencia = db.Column(db.String(50), nullable=False)  
-    ultima_fecha = db.Column(db.Date, nullable=False)      
-    proxima_fecha = db.Column(db.Date, nullable=False)     
+    frecuencia = db.Column(db.String(50), nullable=False)
+    ultima_fecha = db.Column(db.Date, nullable=False)
+    proxima_fecha = db.Column(db.Date, nullable=False)
 
-# ==========================================
-# 3. CREACIÓN AUTOMÁTICA DE TABLAS Y DATOS INICIALES
-# ==========================================
+# Inicialización
 with app.app_context():
-    db.create_all()  
-    
+    db.create_all()
     admin_existente = Usuario.query.filter_by(username="admin").first()
     if not admin_existente:
         admin_por_defecto = Usuario(
@@ -105,25 +87,13 @@ def home():
         operativos = Equipo.query.filter_by(estado="Disponible").count()
         en_mantenimiento = Equipo.query.filter_by(estado="En Mantenimiento").count()
         equipos_recientes = Equipo.query.all()
-        
         admin_info = Usuario.query.filter_by(username=session['usuario']).first()
-        
-        return render_template(
-            'dashboard.html', 
-            usuario_actual=session['usuario'], 
-            admin=admin_info,  
-            total_equipos=total,
-            equipos_operativos=operativos,
-            mantenimiento_equipos=en_mantenimiento,
-            equipos=equipos_recientes
-        )
-        
+        return render_template('dashboard.html', usuario_actual=session['usuario'], admin=admin_info, total_equipos=total, equipos_operativos=operativos, mantenimiento_equipos=en_mantenimiento, equipos=equipos_recientes)
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'usuario' in session:
-        return redirect(url_for('home'))
+    if 'usuario' in session: return redirect(url_for('home'))
     if request.method == 'POST':
         usuario_ingresado = request.form['usuario']
         clave_ingresada = request.form['contrasena']
@@ -131,17 +101,26 @@ def login():
         if usuario_valido:
             if usuario_valido.estado == "Activo":
                 session['usuario'] = usuario_valido.username
-                # CORRECCIÓN AQUÍ:
-                if usuario_valido.es_temporal:
-                    return redirect(url_for('cambiar_clave'))  
+                if usuario_valido.es_temporal: return redirect(url_for('cambiar_clave'))
                 return redirect(url_for('home'))
             else:
                 flash('Tu usuario está Inactivo.', 'error')
-                return render_template('login.html')
         else:
             flash('Usuario o contraseña incorrectos.', 'error')
-            return render_template('login.html')
     return render_template('login.html')
+
+@app.route('/cambiar_clave', methods=['GET', 'POST'])
+def cambiar_clave():
+    if 'usuario' not in session: return redirect(url_for('login'))
+    usuario = Usuario.query.filter_by(username=session['usuario']).first()
+    if request.method == 'POST':
+        usuario.password = request.form.get('password')
+        usuario.es_temporal = False
+        db.session.commit()
+        session.clear()
+        flash("Contraseña actualizada. Inicia sesión de nuevo.", "success")
+        return redirect(url_for('login'))
+    return render_template('cambiar_clave.html')
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
@@ -478,8 +457,7 @@ def editar_credenciales(usuario_id):
 
 @app.route('/logout')
 def logout():
-    session.pop('usuario', None)
-    flash('Has cerrado sesión correctamente.', 'info')
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/equipo/completar/<int:equipo_id>', methods=['POST'])
