@@ -5,21 +5,11 @@ import os
 import io
 import re
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 app = Flask(__name__)
 
-# ==========================================
-# CONFIGURACIÓN ÚNICA Y SEGURA
-# ==========================================
+# CONFIGURACIÓN
 app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_muy_segura_y_larga')
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=False,
-    PERMANENT_SESSION_LIFETIME=timedelta(minutes=60)
-)
-
-# Configuración de base de datos blindada para Render y Local
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -29,9 +19,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ==========================================
 # MODELOS
-# ==========================================
 class Equipo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
@@ -58,9 +46,6 @@ class Mantenimiento(db.Model):
     ultima_fecha = db.Column(db.Date, nullable=False)
     proxima_fecha = db.Column(db.Date, nullable=False)
 
-# ==========================================
-# INICIALIZACIÓN DE BASE DE DATOS
-# ==========================================
 with app.app_context():
     db.create_all()
     # Crear admin por defecto si no existe
@@ -86,29 +71,20 @@ with app.app_context():
 @app.route('/')
 def home():
     if 'usuario' in session:
-        total = Equipo.query.count()
-        operativos = Equipo.query.filter_by(estado="Disponible").count()
-        en_mantenimiento = Equipo.query.filter_by(estado="En Mantenimiento").count()
-        equipos_recientes = Equipo.query.all()
-        admin_info = Usuario.query.filter_by(username=session['usuario']).first()
-        return render_template('dashboard.html', usuario_actual=session['usuario'], admin=admin_info, total_equipos=total, equipos_operativos=operativos, mantenimiento_equipos=en_mantenimiento, equipos=equipos_recientes)
+        return render_template('dashboard.html', usuario_actual=session['usuario'])
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'usuario' in session: return redirect(url_for('home'))
     if request.method == 'POST':
-        usuario_valido = Usuario.query.filter_by(username=request.form['usuario'], password=request.form['contrasena']).first()
-        if usuario_valido:
-            if usuario_valido.estado == "Activo":
-                session['usuario'] = usuario_valido.username
-                if usuario_valido.es_temporal: 
-                    return redirect(url_for('cambiar_clave'))
-                return redirect(url_for('home'))
-            else:
-                flash('Tu usuario está Inactivo.', 'error')
-        else:
-            flash('Usuario o contraseña incorrectos.', 'error')
+        user = Usuario.query.filter_by(username=request.form['usuario'], password=request.form['contrasena']).first()
+        if user and user.estado == "Activo":
+            session['usuario'] = user.username
+            if user.es_temporal:
+                flash("Debes cambiar tu contraseña temporal.", "warning")
+                return redirect(url_for('cambiar_clave'))
+            return redirect(url_for('home'))
+        flash('Credenciales incorrectas o usuario inactivo', 'error')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -124,9 +100,8 @@ def cambiar_clave():
         usuario.password = request.form.get('password')
         usuario.es_temporal = False
         db.session.commit()
-        session.clear()
-        flash("Contraseña actualizada. Inicia sesión de nuevo.", "success")
-        return redirect(url_for('login'))
+        flash("Contraseña actualizada.", "success")
+        return redirect(url_for('home'))
     return render_template('cambiar_clave.html')
 
 @app.route('/registro', methods=['GET', 'POST'])
@@ -269,29 +244,20 @@ def realizar_mantenimiento(tarea_id):
 # ==========================================
 @app.route('/acceso')
 def acceso():
-    if session.get('usuario') != 'admin':
-        flash("Acceso denegado: No tienes permisos de administrador.", "error")
-        return redirect(url_for('home'))
-    return render_template('acceso.html', usuario_actual=session['usuario'], admin=Usuario.query.filter_by(username=session['usuario']).first(), usuarios=Usuario.query.all())
+    if session.get('usuario') != 'admin': return redirect(url_for('home'))
+    return render_template('acceso.html', usuarios=Usuario.query.all())
 
 @app.route('/acceso/cambiar_estado/<int:usuario_id>', methods=['POST'])
 def cambiar_estado_usuario(usuario_id):
-    if session.get('usuario') != 'admin': return redirect(url_for('home'))
-    usuario = Usuario.query.get_or_404(usuario_id)
-    usuario.estado = "Inactivo" if usuario.estado == "Activo" else "Activo"
+    u = Usuario.query.get_or_404(usuario_id)
+    u.estado = "Inactivo" if u.estado == "Activo" else "Activo"
     db.session.commit()
     return redirect(url_for('acceso'))
 
 @app.route('/acceso/eliminar/<int:usuario_id>', methods=['POST'])
 def eliminar_usuario(usuario_id):
-    if session.get('usuario') != 'admin': return redirect(url_for('home'))
-    usuario_a_eliminar = Usuario.query.get_or_404(usuario_id)
-    if usuario_a_eliminar.username == session['usuario']:
-        flash("No puedes eliminar tu propia cuenta de administrador.", "error")
-        return redirect(url_for('acceso'))
-    db.session.delete(usuario_a_eliminar)
+    db.session.delete(Usuario.query.get_or_404(usuario_id))
     db.session.commit()
-    flash(f"Usuario {usuario_a_eliminar.username} eliminado permanentemente.", "success")
     return redirect(url_for('acceso'))
 
 @app.route('/acceso/editar/<int:usuario_id>', methods=['POST'])
@@ -307,17 +273,12 @@ def editar_usuario(usuario_id):
 
 @app.route('/acceso/editar_credenciales/<int:usuario_id>', methods=['POST'])
 def editar_credenciales(usuario_id):
-    if session.get('usuario') != 'admin': return redirect(url_for('home'))
-    usuario = Usuario.query.get_or_404(usuario_id)
-    usuario.username = request.form.get('username')
-    usuario.password = request.form.get('password')
-    usuario.es_temporal = True 
-    try:
-        db.session.commit()
-        flash(f"Credenciales actualizadas para {usuario.nombre}.", "success")
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Error al guardar: {str(e)}", "error")
+    u = Usuario.query.get_or_404(usuario_id)
+    u.username = request.form.get('username')
+    u.password = request.form.get('password')
+    u.es_temporal = True
+    db.session.commit()
+    flash(f"Credenciales de {u.nombre} actualizadas. Cambio obligatorio activado.", "success")
     return redirect(url_for('acceso'))
 
 @app.route('/toggle_estado/<int:usuario_id>', methods=['POST'])
