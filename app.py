@@ -386,42 +386,43 @@ def cambiar_estado_usuario(usuario_id):
         return redirect(url_for('home'))
     
     usuario = Usuario.query.get_or_404(usuario_id)
-    # Alternar estado
     usuario.estado = "Inactivo" if usuario.estado == "Activo" else "Activo"
     db.session.commit()
-    flash(f"Estado de {usuario.username} cambiado a {usuario.estado}.", "success")
     return redirect(url_for('acceso'))
 
+# --- RUTA DE SOPORTE: RESTABLECER CREDENCIALES ---
 @app.route('/acceso/editar_credenciales/<int:usuario_id>', methods=['POST'])
 def editar_credenciales(usuario_id):
     if session.get('usuario') != 'admin':
         return redirect(url_for('home'))
         
     usuario = Usuario.query.get_or_404(usuario_id)
-    # Actualizamos valores
     usuario.username = request.form.get('username')
     usuario.password = request.form.get('password')
-    usuario.es_temporal = True # Esto fuerza el cambio de clave en el próximo login
+    usuario.es_temporal = True 
     
     db.session.commit()
-    flash(f"Credenciales de {usuario.username} restablecidas.", "success")
+    flash(f"Acceso restablecido para {usuario.nombre}.", "success")
     return redirect(url_for('acceso'))
 
-@app.route('/acceso/cambiar_estado/<int:usuario_id>', methods=['POST'])
-def cambiar_estado_usuario(usuario_id):
-    if 'usuario' not in session or session['usuario'] != 'admin':
-        flash("Acceso denegado.", "error")
-        return redirect(url_for('home'))
+# --- RUTA PARA CAMBIAR LA CLAVE (FLUJO DEL USUARIO) ---
+@app.route('/cambiar_clave', methods=['GET', 'POST'])
+def cambiar_clave():
+    if 'usuario' not in session:
+        return redirect(url_for('login'))
+        
+    usuario = Usuario.query.filter_by(username=session['usuario']).first()
     
-    usuario_a_cambiar = Usuario.query.get_or_404(usuario_id)
-    if usuario_a_cambiar.username == session['usuario']:
-        flash("No puedes modificar tu propia cuenta.", "error")
-        return redirect(url_for('acceso'))
-    
-    usuario_a_cambiar.estado = "Inactivo" if usuario_a_cambiar.estado == "Activo" else "Activo"
-    db.session.commit()
-    flash(f"Estado de {usuario_a_cambiar.username} actualizado.", "success")
-    return redirect(url_for('acceso'))
+    if request.method == 'POST':
+        usuario.password = request.form.get('password')
+        usuario.es_temporal = False 
+        db.session.commit()
+        
+        session.clear() 
+        flash("Contraseña actualizada con éxito. Por favor, inicia sesión.", "success")
+        return redirect(url_for('login'))
+        
+    return render_template('cambiar_clave.html')
 
 # RUTA CORREGIDA: Única y funcional
 @app.route('/acceso/eliminar/<int:usuario_id>', methods=['POST'])
@@ -474,23 +475,6 @@ def editar_credenciales(usuario_id):
         
     return redirect(url_for('acceso'))
 
-@app.route('/cambiar_clave', methods=['GET', 'POST'])
-def cambiar_clave():
-    if 'usuario' not in session:
-        return redirect(url_for('login'))
-    
-    usuario = Usuario.query.filter_by(username=session['usuario']).first()
-    
-    if request.method == 'POST':
-        usuario.password = request.form.get('password')
-        usuario.es_temporal = False # <--- AQUI SE QUITA EL BLOQUEO
-        db.session.commit()
-        
-        session.clear() # <--- OBLIGATORIO: limpia la sesión actual
-        flash("Clave actualizada. Por favor, logueate de nuevo.", "success")
-        return redirect(url_for('login'))
-        
-    return render_template('cambiar_clave.html')
 
 @app.route('/logout')
 def logout():
