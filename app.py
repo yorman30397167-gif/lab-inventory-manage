@@ -320,6 +320,21 @@ def editar_credenciales(usuario_id):
         flash(f"Error al guardar: {str(e)}", "error")
     return redirect(url_for('acceso'))
 
+@app.route('/toggle_estado/<int:usuario_id>', methods=['POST'])
+def toggle_estado(usuario_id):
+    # Supongamos que tienes una función para obtener tu usuario
+    usuario = Usuario.query.get_or_404(usuario_id)
+    
+    # Cambiamos el estado
+    if usuario.estado == "Activo":
+        usuario.estado = "Inactivo"
+    else:
+        usuario.estado = "Activo"
+        
+    db.session.commit()
+    flash(f"Estado de {usuario.nombre} actualizado a {usuario.estado}", "success")
+    return redirect(url_for('acceso'))
+
 # ==========================================
 # EXPORTACIÓN
 # ==========================================

@@ -43,7 +43,6 @@
         th { background-color: rgba(241, 245, 249, 0.8); padding: 12px; color: #475569; font-size: 14px; border-bottom: 2px solid #cbd5e1; }
         td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #1e293b; }
 
-        /* Estilo del Panel Desplegable */
         .panel-soporte { background-color: #f1f5f9; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; border: 1px solid #cbd5e1; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
         .form-group { margin: 0; }
@@ -54,6 +53,10 @@
         .btn-support { background-color: #bae6fd; color: #0369a1; }
         .btn-delete { background-color: #fecaca; color: #991b1b; }
         .btn-submit { background-color: #0ea5e9; color: white; padding: 8px 15px; }
+        
+        /* Estilo para el botón de cambio de estado */
+        .btn-toggle-estado { background: none; border: none; cursor: pointer; padding: 5px; border-radius: 4px; transition: 0.2s; }
+        .btn-toggle-estado:hover { background: rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -87,8 +90,15 @@
                         <td><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></td>
                         <td>{{ usuario.cedula }}</td>
                         <td>
-                            {% if usuario.estado == "Activo" %} <span style="color: #16a34a;">🟢 Activo</span>
-                            {% else %} <span style="color: #dc2626;">🔴 Inactivo</span> {% endif %}
+                            <form action="{{ url_for('toggle_estado', usuario_id=usuario.id) }}" method="POST">
+                                <button type="submit" class="btn-toggle-estado" title="Click para cambiar estado">
+                                    {% if usuario.estado == "Activo" %} 
+                                        <span style="color: #16a34a; font-weight: bold;">🟢 Activo</span>
+                                    {% else %} 
+                                        <span style="color: #dc2626; font-weight: bold;">🔴 Inactivo</span> 
+                                    {% endif %}
+                                </button>
+                            </form>
                         </td>
                         <td>
                             <button class="btn-action btn-support" onclick="toggleSoporte('{{ usuario.id }}')">✏️ Soporte</button>
