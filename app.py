@@ -382,6 +382,33 @@ def acceso():
 
 @app.route('/acceso/cambiar_estado/<int:usuario_id>', methods=['POST'])
 def cambiar_estado_usuario(usuario_id):
+    if session.get('usuario') != 'admin':
+        return redirect(url_for('home'))
+    
+    usuario = Usuario.query.get_or_404(usuario_id)
+    # Alternar estado
+    usuario.estado = "Inactivo" if usuario.estado == "Activo" else "Activo"
+    db.session.commit()
+    flash(f"Estado de {usuario.username} cambiado a {usuario.estado}.", "success")
+    return redirect(url_for('acceso'))
+
+@app.route('/acceso/editar_credenciales/<int:usuario_id>', methods=['POST'])
+def editar_credenciales(usuario_id):
+    if session.get('usuario') != 'admin':
+        return redirect(url_for('home'))
+        
+    usuario = Usuario.query.get_or_404(usuario_id)
+    # Actualizamos valores
+    usuario.username = request.form.get('username')
+    usuario.password = request.form.get('password')
+    usuario.es_temporal = True # Esto fuerza el cambio de clave en el próximo login
+    
+    db.session.commit()
+    flash(f"Credenciales de {usuario.username} restablecidas.", "success")
+    return redirect(url_for('acceso'))
+
+@app.route('/acceso/cambiar_estado/<int:usuario_id>', methods=['POST'])
+def cambiar_estado_usuario(usuario_id):
     if 'usuario' not in session or session['usuario'] != 'admin':
         flash("Acceso denegado.", "error")
         return redirect(url_for('home'))
@@ -451,20 +478,16 @@ def editar_credenciales(usuario_id):
 def cambiar_clave():
     if 'usuario' not in session:
         return redirect(url_for('login'))
-        
+    
     usuario = Usuario.query.filter_by(username=session['usuario']).first()
     
     if request.method == 'POST':
-        nueva_pass = request.form.get('password')
-        # Guardamos la clave directamente
-        usuario.password = nueva_pass 
-        usuario.es_temporal = False  # Esto es lo que saca al usuario del ciclo de clave temporal
-        
+        usuario.password = request.form.get('password')
+        usuario.es_temporal = False # <--- AQUI SE QUITA EL BLOQUEO
         db.session.commit()
         
-        # IMPORTANTE: Forzamos la recarga de sesión
-        flash("Contraseña actualizada. Por favor, inicia sesión nuevamente.", "success")
-        session.clear() # Limpiamos todo para evitar basura en la sesión
+        session.clear() # <--- OBLIGATORIO: limpia la sesión actual
+        flash("Clave actualizada. Por favor, logueate de nuevo.", "success")
         return redirect(url_for('login'))
         
     return render_template('cambiar_clave.html')
