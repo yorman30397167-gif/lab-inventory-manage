@@ -455,11 +455,17 @@ def cambiar_clave():
     usuario = Usuario.query.filter_by(username=session['usuario']).first()
     
     if request.method == 'POST':
-        usuario.password = request.form.get('password')
-        usuario.es_temporal = False  # <--- ESTO ES LO MÁS IMPORTANTE
+        nueva_pass = request.form.get('password')
+        # Guardamos la clave directamente
+        usuario.password = nueva_pass 
+        usuario.es_temporal = False  # Esto es lo que saca al usuario del ciclo de clave temporal
+        
         db.session.commit()
-        flash("Contraseña actualizada con éxito.", "success")
-        return redirect(url_for('home'))
+        
+        # IMPORTANTE: Forzamos la recarga de sesión
+        flash("Contraseña actualizada. Por favor, inicia sesión nuevamente.", "success")
+        session.clear() # Limpiamos todo para evitar basura en la sesión
+        return redirect(url_for('login'))
         
     return render_template('cambiar_clave.html')
 
